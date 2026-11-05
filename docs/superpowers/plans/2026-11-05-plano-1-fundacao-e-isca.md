@@ -10,6 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-arapuca-honeyant-design.md` (seções 3, 4, 5 "Isca", 6 `EventoDeAtaque`, 12, 15)
 
+## Estado da infraestrutura (já feito pelo Lucas em 05/11)
+
+- EC2 t3.micro em us-east-1, com Docker e Compose instalados, 2 GB de swap, 12 GB de disco e **saída bloqueada**; janela de saída documentada. O IP público **não** é versionado.
+- Conta AWS nova, no plano pago básico; custo previsto de R$ 20–50 até a apresentação.
+- Ruleset da `main` com 1 aprovação obrigatória e bypass para o admin.
+- Wireshark instalado no notebook.
+
 ## Global Constraints
 
 - Python **3.12** em todo lugar: `requires-python = ">=3.12,<3.13"`, `.python-version` = `3.12`, imagem `python:3.12-slim`. (A máquina do Lucas tem 3.14; o uv instala o 3.12.)
@@ -197,9 +204,11 @@ git push -u origin feat/fundacao
 ```
 Abrir o PR `feat/fundacao → main` no GitHub. Expected: jobs `qualidade` e `seguranca` verdes. Um integrante revisa e aprova; merge.
 
-- [ ] **Step 6: Proteger a `main` (Lucas, no GitHub)**
+- [ ] **Step 6: Completar o ruleset da `main` (Lucas, no GitHub)**
 
-Settings → Branches → regra para `main`: exigir PR, **1 aprovação**, status checks `qualidade` e `seguranca`, bloquear push direto. Adicionar os 4 colegas como colaboradores com permissão de escrita.
+O ruleset já existe, com 1 aprovação e bypass para o admin. Falta acrescentar: **status checks obrigatórios `qualidade` e `seguranca`** (eles só aparecem para seleção depois da primeira execução do CI neste PR) e o bloqueio de force push. Adicionar os 4 colegas como colaboradores com permissão de escrita.
+
+O bypass do admin fica **só para emergência**. O edital pede PRs revisados, então todo merge feito por bypass precisa ser justificado na descrição do PR.
 
 ---
 
@@ -823,17 +832,18 @@ Abrir o PR `feat/arapuca → main` com **revisão do Rafael**. Para agilizar, a 
 - Consumes: `infra/compose.cloud.yml` (Tarefa 9).
 - Produces: isca acessível em `<IP-da-EC2>:23` e `:1883`, sem saída de rede.
 
-- [ ] **Step 1: Escrever `infra/aws/DEPLOY.md`** com os passos abaixo, executados pelo Lucas no console:
-  1. **Billing → Budgets:** criar um orçamento de custo de **US$ 1** com alerta por e-mail.
-  2. **Política de uso:** ler a Acceptable Use Policy da AWS e registrar o resultado no ADR (passo 2 desta tarefa) **antes** de seguir.
-  3. **EC2:** Ubuntu Server 24.04 LTS, tipo com selo **"Free tier eligible"**, 20 GB gp3, par de chaves novo.
-  4. **Security Group `honeyant-isca`:**
-     - entrada: TCP 23 e TCP 1883 de `0.0.0.0/0` e `::/0`; TCP 22 apenas de "Meu IP";
-     - saída: **remover todas as regras**.
-  5. **Janela de deploy:** adicionar temporariamente uma saída TCP 80/443 para `0.0.0.0/0`. Na instância: instalar o Docker (`apt`, repositório oficial), rodar `git clone` do repositório público, depois `docker compose -f infra/compose.cloud.yml up -d --build`. **Remover a regra de saída** ao terminar.
+- [ ] **Step 1: Escrever `infra/aws/DEPLOY.md`** com os passos abaixo. Os passos marcados como ✅ já foram feitos e entram no documento para que o deploy possa ser reproduzido:
+  1. **Billing → Budgets:** criar um orçamento de custo mensal de **US$ 10**, com alertas por e-mail em 50% e 100%. Em Billing → Credits, verificar se a conta nova tem créditos promocionais.
+  2. **Política de uso:** ler a Acceptable Use Policy da AWS e registrar o resultado no ADR (passo 2 desta tarefa) **antes** de subir a isca.
+  3. ✅ **EC2:** t3.micro em us-east-1, 12 GB de disco, 2 GB de swap, Docker e Compose instalados.
+  4. **Security Group:** conferir que a entrada é TCP 23 e TCP 1883 de `0.0.0.0/0` e `::/0`, mais TCP 22 apenas de "Meu IP"; ✅ saída sem nenhuma regra.
+  5. **Janela de deploy** (✅ procedimento já documentado): abrir a saída TCP 80/443, rodar `git clone` do repositório público (ou `git pull`), depois `docker compose -f infra/compose.cloud.yml up -d --build`. **Fechar a saída** ao terminar.
+     - O build baixa a base DB-IP e as dependências; com 1 GB de RAM, o swap evita erro de memória.
+     - Antes do build, confirmar espaço livre com `df -h /`; ao final, rodar `docker image prune -f` para não lotar os 12 GB.
   6. **Conferir que a saída está bloqueada:** na instância, `curl -m 5 https://example.com` precisa falhar com timeout.
   7. **Conferir que a isca funciona:** no PC, `Test-NetConnection <IP> -Port 23` deve mostrar `TcpTestSucceeded : True`; depois de alguns minutos, `docker compose ... exec isca honeyant-isca estatisticas` deve mostrar `total` > 0.
-  8. **No dia seguinte**, em Billing → Free tier, confirmar uso dentro do gratuito, incluindo o IPv4 público.
+  8. **No dia seguinte**, em Billing → Cost Explorer, confirmar que o gasto diário está dentro do previsto (R$ 20–50 até a apresentação), incluindo o IPv4 público, e anotar o valor.
+  9. **Depois da ExpoTech (28/11):** desligar ou encerrar a instância e liberar o IP.
   - O documento **não** traz IP, ID de conta nem nome do par de chaves.
 
 - [ ] **Step 2: Escrever `docs/adr/0004-isca-baixa-interacao.md`.** Seguir o formato Contexto / Decisão / Alternativas (Cowrie de alta interação, descartado pelo risco operacional) / Consequências / "Política de uso da AWS: verificada em <data>, link, conclusão" (preenchido pelo Lucas no passo 2 do deploy).
@@ -857,7 +867,7 @@ Esta tarefa responde a uma pergunta: **o tcpdump num container consegue gravar o
 **Files:**
 - Create: `infra/teste-captura/compose.yml`, `infra/teste-captura/mosquitto.conf`, `infra/teste-captura/LEIAME.md`
 
-- [ ] **Step 1: Instalar o Wireshark** no notebook da apresentação (instalador oficial em wireshark.org; não precisa do Npcap, porque não vamos capturar no host).
+- [x] **Step 1: Instalar o Wireshark** no notebook da apresentação. ✅ Feito em 05/11.
 
 - [ ] **Step 2: Escrever os arquivos**
   - `mosquitto.conf`: `listener 1883` e `allow_anonymous true`.

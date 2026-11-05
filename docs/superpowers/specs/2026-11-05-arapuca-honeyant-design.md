@@ -1,6 +1,6 @@
 # Arapuca HoneyAnt — Design (spec)
 
-- **Data:** 2026-11-05 (revisão 2)
+- **Data:** 2026-11-05 (revisão 3: conta AWS no plano pago e custo previsto)
 - **Status:** aguardando revisão da equipe
 - **Escopo deste spec:** visão geral do sistema, contratos entre módulos e modelos técnicos (grafo, sensor, fuzzy, ACO). O detalhamento de cada módulo será feito no plano de implementação.
 
@@ -28,7 +28,7 @@ O roteiro de demonstração (seção 13) roda de ponta a ponta, coberto por um t
 | Telecom & Segurança de Redes | **Módulo `sensor`** monitorando o tráfego da casa; vulnerabilidade **identificada pelo sensor** e mitigada; `.pcap` antes/depois em `docs/capturas/` |
 | Inteligência Computacional | Fuzzy calculando risco + ACO encontrando a rota; custo medido antes/depois |
 | Arquitetura & Padrões | Diagramas em `docs/arquitetura/`, ADRs em `docs/adr/`, regra de dependência verificada no CI |
-| Cloud | Isca, painel **e pathfinder** em EC2 free tier; GitHub Actions com lint e testes em todo PR |
+| Cloud | Isca, painel **e pathfinder** em EC2 (t3.micro, us-east-1); GitHub Actions com lint e testes em todo PR |
 
 ## 2. Escopo
 
@@ -45,7 +45,7 @@ O roteiro de demonstração (seção 13) roda de ponta a ponta, coberto por um t
 ## 3. Topologia de implantação
 
 ```
-EC2 (1 instância, free tier)                    Notebook da apresentação (docker compose)
+EC2 (1 instância t3.micro)                      Notebook da apresentação (docker compose)
 ┌──────────────────────────────────┐            ┌───────────────────────────────────────┐
 │ arapuca ──► SQLite (volume)      │ HTTPS GET  │ twin: Mosquitto + 5 dispositivos      │
 │               │ mode=ro          │ ◄───────── │ sensor + captura (rede do broker)     │
@@ -64,7 +64,7 @@ Restringir a 443 também evita que um painel real ao lado da isca denuncie aos a
 
 **TLS do painel:** certificado emitido por uma **CA própria** do projeto (gerada pelo mesmo script dos certificados do Mosquitto). O cliente do notebook **fixa essa CA** (`verify="ca.pem"`) — `verify=False` é proibido e há teste que garante isso. A CA é instalada nos navegadores dos notebooks da equipe. Alternativa descartada (ADR): domínio DuckDNS + Let's Encrypt, que exige saída de rede e desafio DNS/HTTP público.
 
-**Custo zero:** conta no Free Tier/plano de créditos e alerta de cobrança de US$ 1 criado **antes** do primeiro deploy.
+**Custo:** a conta AWS do projeto está no plano pago básico. O custo previsto é de **R$ 20 a R$ 50** para manter uma t3.micro (us-east-1) ligada até a apresentação, pago pela equipe. Para limitar o gasto: um orçamento (AWS Budgets) com alertas em 50% e 100% de **US$ 10**; uma única instância; disco de 12 GB; saída bloqueada (sem tráfego de saída cobrado); e a instância desligada ou encerrada logo após a ExpoTech. Os créditos promocionais da conta, se houver (Billing → Credits), são aplicados antes da cobrança. A diferença em relação ao "custo zero" do briefing está registrada no ADR 2.
 
 **Política de uso:** verificação da política da AWS para honeypots registrada em ADR antes do deploy.
 
@@ -388,7 +388,7 @@ Se parte da equipe não conseguir entregar, o esqueleto de 06/11 é o que permit
 ## 18. ADRs previstos
 
 1. Arquitetura hexagonal, regra de dependência e composition root (`apps/`)
-2. Topologia: isca, painel e pathfinder na EC2; casa e sensor no notebook
+2. Topologia: isca, painel e pathfinder na EC2; casa e sensor no notebook; conta AWS no plano pago e custo previsto
 3. SQLite no MVP (vs PostgreSQL) e leitura em `mode=ro`
 4. Isca de baixa interação (vs Cowrie) e política de uso da AWS
 5. TLS com CA própria fixada (vs DuckDNS + Let's Encrypt)
@@ -411,6 +411,7 @@ Se parte da equipe não conseguir entregar, o esqueleto de 06/11 é o que permit
 | Força bruta no painel / painel denuncia o honeypot | 443 só para IPs da equipe; bloqueio após 5 tentativas |
 | Disco da EC2 enche com flood | Teto global de eventos e bytes com descarte dos mais antigos |
 | Internet da sala falha | Resumo em cache, replay e vídeo |
-| Cobrança na AWS | Uma instância, alerta de US$ 1, saída bloqueada |
+| Custo na AWS acima do previsto (R$ 20–50) | Uma instância, orçamento de US$ 10 com alertas, saída bloqueada, desligar após a ExpoTech |
+| Banca questionar "deploy em camada gratuita" | ADR 2 explica a troca de conta e o custo; toda a arquitetura cabe numa t3.micro, elegível ao free tier em contas novas |
 | ACO não converge para a rota esperada | Dijkstra como gabarito no teste; parâmetros ajustáveis; semente fixa |
 | Algum integrante sem conseguir explicar outra parte | Revisão cruzada por consumidor (revisor = substituto) + ADRs curtos e didáticos |
