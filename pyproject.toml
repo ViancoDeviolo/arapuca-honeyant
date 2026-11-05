@@ -43,3 +43,46 @@ dev = [
     "pytest-asyncio>=1.4.1.post1",
     "ruff>=0.17.4",
 ]
+
+[tool.importlinter]
+root_package = "honeyant"
+
+[[tool.importlinter.contracts]]
+name = "core nao depende de nenhum modulo"
+type = "forbidden"
+source_modules = ["honeyant.core"]
+forbidden_modules = [
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+    "honeyant.apps",
+]
+
+[[tool.importlinter.contracts]]
+name = "modulos nao importam uns aos outros"
+type = "independence"
+modules = [
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+]
+
+[[tool.importlinter.contracts]]
+name = "somente apps e o composition root"
+type = "forbidden"
+source_modules = [
+    "honeyant.core",
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+]
+forbidden_modules = ["honeyant.apps"]
