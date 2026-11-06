@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "gerado_em": "2026-11-06T12:00:00Z",
+  "janela_horas": 24,
+  "total_eventos": 1840,
+  "por_servico": {"telnet": 1512, "mqtt": 328},
+  "acumulado_por_servico": {"telnet": 2210, "mqtt": 471},
+  "por_pais": {"CN": 512, "US": 301, "BR": 244, "RU": 198, "IN": 151, "VN": 122, "KR": 97, "NL": 81, "DE": 64, "ZZ": 70},
+  "por_asn": {"4134": 288, "4837": 171, "14061": 160, "16509": 132, "28573": 118, "45899": 92, "0": 879},
+  "intencao": {"varredura": 702, "forca_bruta": 891, "botnet": 247},
+  "top_credenciais": [
+    {"usuario": "admin",   "senha": "admin",    "tentativas": 214},
+    {"usuario": "root",    "senha": "xc3511",   "tentativas": 187},
+    {"usuario": "root",    "senha": "123456",   "tentativas": 160},
+    {"usuario": "root",    "senha": "vizxv",    "tentativas": 133},
+    {"usuario": "admin",   "senha": "1234",     "tentativas": 96},
+    {"usuario": "root",    "senha": "admin",    "tentativas": 88},
+    {"usuario": "support", "senha": "support",  "tentativas": 61},
+    {"usuario": "root",    "senha": "888888",   "tentativas": 55},
+    {"usuario": "user",    "senha": "user",     "tentativas": 41},
+    {"usuario": "root",    "senha": "default",  "tentativas": 37},
+    {"usuario": "guest",   "senha": "guest",    "tentativas": 30},
+    {"usuario": "root",    "senha": "root",     "tentativas": 28},
+    {"usuario": "admin",   "senha": "password", "tentativas": 24},
+    {"usuario": "root",    "senha": "12345",    "tentativas": 19},
+    {"usuario": null,      "senha": null,       "tentativas": 17}
+  ]
+}

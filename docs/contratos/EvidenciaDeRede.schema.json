@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "Fonte": {
+      "enum": [
+        "passivo",
+        "ativo"
+      ],
+      "title": "Fonte",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acl_bloqueia": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Acl Bloqueia"
+    },
+    "alcancavel": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Alcancavel"
+    },
+    "aresta": {
+      "pattern": "^[a-z][a-z0-9_]{0,31}->[a-z][a-z0-9_]{0,31}$",
+      "title": "Aresta",
+      "type": "string"
+    },
+    "autenticacao_exigida": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Autenticacao Exigida"
+    },
+    "credencial_vazada": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Credencial Vazada"
+    },
+    "fonte": {
+      "$ref": "#/$defs/Fonte"
+    },
+    "observado_em": {
+      "format": "date-time",
+      "title": "Observado Em",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "texto_puro": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Texto Puro"
+    }
+  },
+  "required": [
+    "aresta",
+    "observado_em",
+    "fonte"
+  ],
+  "title": "EvidenciaDeRede",
+  "type": "object"
+}
