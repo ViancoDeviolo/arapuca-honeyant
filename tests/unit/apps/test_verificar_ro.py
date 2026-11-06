@@ -15,13 +15,23 @@ def test_relatorio_do_banco_da_isca(tmp_path, fabrica_evento):
         "eventos": 3,
         "acumulado": {"telnet": 2, "mqtt": 1},
         "escrita_bloqueada": True,
+        "arquivo_gravavel": True,
     }
 
 
 def test_main_imprime_json_sem_ip_e_sai_com_zero(tmp_path, fabrica_evento, monkeypatch, capsys):
     RepositorioSqlite(tmp_path / "isca.db").salvar(fabrica_evento())
+    (tmp_path / "isca.db").chmod(0o444)  # como o usuário 10002 vê o banco da isca
     monkeypatch.setenv("HONEYANT_DB", str(tmp_path / "isca.db"))
     assert main() == 0
     saida = capsys.readouterr().out
     assert json.loads(saida)["escrita_bloqueada"] is True
     assert "203.0.113.7" not in saida
+
+
+def test_arquivo_gravavel_pelo_usuario_reprova(tmp_path, fabrica_evento, monkeypatch, capsys):
+    """A camada do sistema operacional (spec, seção 3): mode=ro sozinho não basta."""
+    RepositorioSqlite(tmp_path / "isca.db").salvar(fabrica_evento())
+    monkeypatch.setenv("HONEYANT_DB", str(tmp_path / "isca.db"))
+    assert main() == 1
+    assert json.loads(capsys.readouterr().out)["arquivo_gravavel"] is True

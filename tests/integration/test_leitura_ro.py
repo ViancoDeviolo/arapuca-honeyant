@@ -53,3 +53,12 @@ def test_leitura_concorrente_com_escrita(tmp_path, fabrica_evento):
 
     assert contagens == sorted(contagens)
     assert contagens[-1] == total
+
+
+def test_le_depois_que_a_isca_fecha_o_banco(tmp_path, fabrica_evento):
+    """Isca desligada limpa: só sobra o isca.db (sem -wal/-shm) e o leitor ainda lê."""
+    repo = RepositorioSqlite(tmp_path / "isca.db")
+    repo.salvar(fabrica_evento())
+    repo._con.close()
+    assert not (tmp_path / "isca.db-wal").exists()
+    assert LeitorSqlite(tmp_path / "isca.db").contar() == 1

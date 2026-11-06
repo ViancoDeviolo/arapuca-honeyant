@@ -10,7 +10,8 @@ services:
     user: "10002:10001"
     command: ["honeyant-verificar-ro"]
     volumes:
-      # Com escrita no diretório: leitores em WAL precisam dos arquivos -wal e -shm.
+      # Com escrita no diretório: leitores em WAL precisam dos arquivos -wal e -shm. O
+      # diretório é 2775 (init-dados), então o grupo 10001 consegue recriá-los.
       - dados:/dados
     read_only: true
     tmpfs:
