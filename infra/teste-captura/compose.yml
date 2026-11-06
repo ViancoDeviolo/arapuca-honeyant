@@ -1,0 +1,26 @@
+# Teste de viabilidade: o tcpdump num container consegue gravar o tráfego MQTT da
+# rede Docker num .pcap que o Wireshark do Windows abre? (Plano 1, tarefa 11)
+# Nenhuma porta é publicada: o tráfego fica só dentro da rede Docker.
+name: honeyant-teste-captura
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  captura:
+    image: nicolaka/netshoot@sha256:b09d9b21381f47a79b3cbcb30da25266dc17186ea00ae65e99fdc51396f48e70
+    # Compartilha a interface de rede do broker: enxerga tudo que entra e sai dele.
+    network_mode: "service:mosquitto"
+    cap_add: [NET_RAW, NET_ADMIN]
+    command: tcpdump -i any -U -w /capturas/teste.pcap port 1883
+    volumes:
+      - ./capturas:/capturas
+    depends_on: [mosquitto]
+
+  cliente:
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb
+    # Credencial FALSA, só de teste: é ela que precisa aparecer no Wireshark.
+    command: mosquitto_pub -h mosquitto -u camera -P 123456 -t casa/teste -m oi
+    depends_on: [captura]

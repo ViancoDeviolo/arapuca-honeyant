@@ -131,7 +131,7 @@ Expected: 2 passed
 Run: `uv run ruff check . ; uv run ruff format --check .`
 Expected: `All checks passed!` e nenhum arquivo a formatar.
 
-- [ ] **Step 7: Commit (Lucas)** — antes, Claude pergunta se README/CONTRIBUTING/CODE_OF_CONDUCT podem ir ao público.
+- [x] **Step 7: Commit (Lucas)** ✅ 06/11 — antes, Claude pergunta se README/CONTRIBUTING/CODE_OF_CONDUCT podem ir ao público.
 
 ```powershell
 git switch -c feat/fundacao
@@ -869,24 +869,24 @@ Esta tarefa responde a uma pergunta: **o tcpdump num container consegue gravar o
 
 - [x] **Step 1: Instalar o Wireshark** no notebook da apresentação. ✅ Feito em 05/11.
 
-- [ ] **Step 2: Escrever os arquivos**
+- [x] **Step 2: Escrever os arquivos** ✅ Feito em 06/11, com `eclipse-mosquitto:2.0.20` fixada por digest. (A `:2` falhou no PC por cache local do Docker corrompido, não por defeito da imagem; ver `infra/teste-captura/LEIAME.md`.)
   - `mosquitto.conf`: `listener 1883` e `allow_anonymous true`.
   - `compose.yml`:
-    - `mosquitto`: `eclipse-mosquitto:2`, com o conf montado;
+    - `mosquitto`: `eclipse-mosquitto:2.0.20`, com o conf montado;
     - `captura`: `nicolaka/netshoot`, com `network_mode: "service:mosquitto"`, `cap_add: [NET_RAW, NET_ADMIN]`, `command: tcpdump -i any -U -w /capturas/teste.pcap port 1883` e o volume `./capturas:/capturas`;
-    - `cliente`: `eclipse-mosquitto:2`, com `command: mosquitto_pub -h mosquitto -u camera -P 123456 -t casa/teste -m oi` e `depends_on: [captura]`.
+    - `cliente`: `eclipse-mosquitto:2.0.20`, com `command: mosquitto_pub -h mosquitto -u camera -P 123456 -t casa/teste -m oi` e `depends_on: [captura]`.
   - Depois do primeiro pull, fixar as imagens por digest (`docker image inspect --format "{{index .RepoDigests 0}}" <imagem>`).
 
-- [ ] **Step 3: Rodar**
+- [x] **Step 3: Rodar** ✅ 06/11.
 
 Run: `docker compose -f infra/teste-captura/compose.yml up` (deixar uns 5 s) e depois `docker compose -f infra/teste-captura/compose.yml down`.
 Expected: o arquivo `infra/teste-captura/capturas/teste.pcap` existe e tem mais de 0 bytes.
 
-- [ ] **Step 4: Abrir no Wireshark**
+- [x] **Step 4: Abrir no Wireshark** ✅ 06/11 (verificado com o TShark 4.6.9 do Windows).
 
 Abrir o `teste.pcap` e aplicar o filtro `mqtt.conflags`. Expected: um pacote **Connect Command** com `User Name: camera` e `Password: 123456` legíveis.
 
-- [ ] **Step 5: Testar o modo ao vivo (Git Bash, não PowerShell)**
+- [x] **Step 5: Testar o modo ao vivo (Git Bash, não PowerShell)** ✅ 06/11 (pipe para o TShark).
 
 Com o compose de pé (`up -d`):
 ```bash
@@ -894,9 +894,9 @@ docker compose -f infra/teste-captura/compose.yml exec -T captura tcpdump -i any
 ```
 Em outro terminal: `docker compose -f infra/teste-captura/compose.yml run --rm cliente`. Expected: o Connect aparece ao vivo no Wireshark.
 
-- [ ] **Step 6: Registrar o resultado** no `LEIAME.md` (funcionou ou não, versão do Docker Desktop, observações). Se o modo ao vivo falhar, o plano B é gravar o `.pcap` e abrir depois.
+- [x] **Step 6: Registrar o resultado** ✅ 06/11 no `LEIAME.md` (funcionou ou não, versão do Docker Desktop, observações). Se o modo ao vivo falhar, o plano B é gravar o `.pcap` e abrir depois.
 
-- [ ] **Step 7: Commit (Lucas)** — **o `.pcap` não entra** (só tem credencial de teste, mas não é a captura oficial).
+- [x] **Step 7: Commit (Lucas)** ✅ 06/11 — **o `.pcap` não entra** (só tem credencial de teste, mas não é a captura oficial).
 
 ```powershell
 git add infra/teste-captura/compose.yml infra/teste-captura/mosquitto.conf infra/teste-captura/LEIAME.md

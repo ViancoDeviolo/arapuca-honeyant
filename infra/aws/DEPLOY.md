@@ -68,7 +68,35 @@ O build baixa a base DB-IP Lite e as dependências Python; por isso precisa da j
    # {"total": N, "acumulado": {"telnet": ..., "mqtt": ...}} com N > 0
    ```
 
-## 7. Acompanhamento e encerramento
+## 7. Verificação do mode=ro
+
+O spec (seção 3) pede que quem lê o banco da isca, o painel e o intel, fique em outro container, com **duas camadas** contra escrita: a conexão SQLite em `mode=ro` e um usuário sem permissão de escrita no arquivo do banco. O container `verificar-ro` (usuário `10002`, grupo `10001` da isca) checa as duas camadas e sai com 0 só se ambas seguram.
+
+Na instância, com a isca no ar:
+
+```bash
+docker compose -f infra/compose.cloud.yml build isca          # troca a imagem; não recria a isca
+docker compose -f infra/compose.cloud.yml up -d init-dados    # diretório /dados 2775
+docker compose -f infra/compose.cloud.yml -f infra/compose.verificar-ro.yml run --rm verificar-ro
+```
+
+Esperado: `"escrita_bloqueada": true` (camada mode=ro), `"arquivo_gravavel": false` (camada do usuário) e saída 0.
+
+**Resultado em 06/11/2026 (EC2, isca no ar desde 05/11):**
+
+```json
+{"modo": "ro", "eventos": 200, "acumulado": {"telnet": 198, "mqtt": 2}, "escrita_bloqueada": true, "arquivo_gravavel": false}
+```
+
+**Conclusão:** a leitura em `mode=ro` funciona com o compose real. O plano B (endpoint interno da isca) não é necessário.
+
+O mesmo teste também passou no Docker Desktop do notebook, em dois cenários:
+- com a isca no ar;
+- com a isca parada, quando o desligamento limpo apaga o `-wal`/`-shm`. Graças ao diretório 2775, o leitor os recria, e a isca retoma os arquivos ao voltar.
+
+**Cuidado para o painel:** um leitor de longa duração que esteja com o `-shm` aberto *enquanto a isca liga* não foi testado. Ao integrar o painel, repita este teste reiniciando a isca com o painel no ar.
+
+## 8. Acompanhamento e encerramento
 
 - No dia seguinte ao deploy, em **Billing → Cost Explorer**, confirmar que o gasto diário está dentro do previsto (R$ 20–50 até a apresentação), incluindo o IPv4 público.
 - **Depois da ExpoTech (28/11/2026):** parar ou encerrar a instância e liberar o IP.

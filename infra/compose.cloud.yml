@@ -4,9 +4,12 @@ name: honeyant-nuvem
 services:
   init-dados:
     # Roda uma vez: dá ao usuário da isca (10001) a posse do volume de dados.
+    # O diretório fica 2775 (grupo 10001 cria arquivos; setgid mantém o grupo) porque
+    # leitores em mode=ro de outro usuário do grupo precisam recriar o -shm/-wal depois
+    # que a isca desliga. O arquivo isca.db continua 0644: só a isca escreve nele.
     image: busybox:1.37
     user: "0:0"
-    command: ["chown", "-R", "10001:10001", "/dados"]
+    command: ["sh", "-c", "chown -R 10001:10001 /dados && chmod 2775 /dados"]
     volumes:
       - dados:/dados
     restart: "no"
