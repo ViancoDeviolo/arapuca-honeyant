@@ -1,0 +1,88 @@
+[project]
+name = "honeyant"
+version = "0.1.0"
+description = "Honeypot de baixa interação + gêmeo digital de casa inteligente com lógica fuzzy e colônia de formigas para prever rotas de invasão."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Equipe Arapuca HoneyAnt" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "maxminddb>=2",
+    "pydantic>=2",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["integration: precisa de rede local ou docker"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[dependency-groups]
+dev = [
+    "bandit[toml]>=1.9.4",
+    "import-linter>=2.15",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "ruff>=0.17.4",
+]
+
+[tool.importlinter]
+root_package = "honeyant"
+
+[[tool.importlinter.contracts]]
+name = "core nao depende de nenhum modulo"
+type = "forbidden"
+source_modules = ["honeyant.core"]
+forbidden_modules = [
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+    "honeyant.apps",
+]
+
+[[tool.importlinter.contracts]]
+name = "modulos nao importam uns aos outros"
+type = "independence"
+modules = [
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+]
+
+[[tool.importlinter.contracts]]
+name = "somente apps e o composition root"
+type = "forbidden"
+source_modules = [
+    "honeyant.core",
+    "honeyant.arapuca",
+    "honeyant.intel",
+    "honeyant.twin",
+    "honeyant.sensor",
+    "honeyant.pathfinder",
+    "honeyant.painel",
+]
+forbidden_modules = ["honeyant.apps"]
