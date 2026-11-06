@@ -23,6 +23,8 @@ from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.fuzzy import ModeloDeRisco
 from honeyant.pathfinder.prever import ColetorDeSnapshots, prever_rota
 
+HOSTS_LOCAIS = frozenset({"127.0.0.1", "localhost", "::1"})
+
 
 @dataclass(frozen=True)
 class ConfigLocal:
@@ -33,10 +35,17 @@ class ConfigLocal:
 
     @classmethod
     def de_ambiente(cls, env: Mapping[str, str]) -> "ConfigLocal":
+        host = env.get("HONEYANT_HOST", "127.0.0.1")
+        # Painel ainda sem login nem TLS (spec, seção 12): só a própria máquina acessa.
+        if host not in HOSTS_LOCAIS:
+            raise ValueError(
+                f"HONEYANT_HOST={host!r} recusado: até o painel ter autenticação, "
+                "use 127.0.0.1 (ou localhost/::1)"
+            )
         return cls(
             perfil=TipoDePerfil(env.get("HONEYANT_PERFIL", "inseguro")),
             demo_dir=Path(env.get("HONEYANT_DEMO_DIR", "docs/demo")),
-            host=env.get("HONEYANT_HOST", "127.0.0.1"),
+            host=host,
             porta=int(env.get("HONEYANT_PORTA", "8000")),
         )
 

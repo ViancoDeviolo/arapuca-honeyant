@@ -47,3 +47,14 @@ def test_config_padrao_so_escuta_localhost():
     c = ConfigLocal.de_ambiente({})
     assert (c.host, c.porta, c.perfil) == ("127.0.0.1", 8000, TipoDePerfil.INSEGURO)
     assert c.demo_dir == Path("docs/demo")
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.0.10"])  # noqa: S104
+def test_config_recusa_host_fora_do_localhost_enquanto_nao_ha_login(host):
+    with pytest.raises(ValueError, match="127.0.0.1"):
+        ConfigLocal.de_ambiente({"HONEYANT_HOST": host})
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "localhost", "::1"])
+def test_config_aceita_loopback(host):
+    assert ConfigLocal.de_ambiente({"HONEYANT_HOST": host}).host == host
