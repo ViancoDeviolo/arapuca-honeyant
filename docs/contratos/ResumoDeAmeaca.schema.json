@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "CredencialTentada": {
+      "additionalProperties": false,
+      "properties": {
+        "senha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Senha"
+        },
+        "tentativas": {
+          "minimum": 1,
+          "title": "Tentativas",
+          "type": "integer"
+        },
+        "usuario": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usuario"
+        }
+      },
+      "required": [
+        "tentativas"
+      ],
+      "title": "CredencialTentada",
+      "type": "object"
+    },
+    "Intencao": {
+      "enum": [
+        "varredura",
+        "forca_bruta",
+        "botnet"
+      ],
+      "title": "Intencao",
+      "type": "string"
+    },
+    "Servico": {
+      "enum": [
+        "telnet",
+        "mqtt",
+        "http",
+        "upnp",
+        "lan"
+      ],
+      "title": "Servico",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acumulado_por_servico": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Servico"
+      },
+      "title": "Acumulado Por Servico",
+      "type": "object"
+    },
+    "gerado_em": {
+      "format": "date-time",
+      "title": "Gerado Em",
+      "type": "string"
+    },
+    "intencao": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Intencao"
+      },
+      "title": "Intencao",
+      "type": "object"
+    },
+    "janela_horas": {
+      "default": 24,
+      "exclusiveMinimum": 0,
+      "title": "Janela Horas",
+      "type": "integer"
+    },
+    "por_asn": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Por Asn",
+      "type": "object"
+    },
+    "por_pais": {
+      "patternProperties": {
+        "^[A-Za-z]{2}$": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "title": "Por Pais",
+      "type": "object"
+    },
+    "por_servico": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/Servico"
+      },
+      "title": "Por Servico",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "top_credenciais": {
+      "items": {
+        "$ref": "#/$defs/CredencialTentada"
+      },
+      "maxItems": 20,
+      "title": "Top Credenciais",
+      "type": "array"
+    },
+    "total_eventos": {
+      "minimum": 0,
+      "title": "Total Eventos",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "gerado_em",
+    "total_eventos",
+    "por_servico",
+    "acumulado_por_servico",
+    "por_pais",
+    "por_asn",
+    "intencao",
+    "top_credenciais"
+  ],
+  "title": "ResumoDeAmeaca",
+  "type": "object"
+}

@@ -1,0 +1,32 @@
+﻿# Segredos e configuração local
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.csr
+infra/mosquitto/seguro/certs/
+infra/mosquitto/**/passwd
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Dados brutos da isca (dado pessoal: IP de atacante)
+data/
+*.db
+*.sqlite3
+
+# IDE e sistema
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
