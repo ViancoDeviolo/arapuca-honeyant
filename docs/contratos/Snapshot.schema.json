@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "Algoritmo": {
+      "enum": [
+        "aco",
+        "dijkstra"
+      ],
+      "title": "Algoritmo",
+      "type": "string"
+    },
+    "Rota": {
+      "additionalProperties": false,
+      "description": "Caminho da internet até o alvo.\n\n`custo` é a soma de −ln(risco) das arestas; `plausibilidade = e^(−custo)` é o\nproduto dos riscos: um score para comparar rotas, não uma probabilidade calibrada.",
+      "properties": {
+        "algoritmo": {
+          "$ref": "#/$defs/Algoritmo"
+        },
+        "custo": {
+          "minimum": 0,
+          "title": "Custo",
+          "type": "number"
+        },
+        "nos": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Nos",
+          "type": "array"
+        },
+        "plausibilidade": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Plausibilidade",
+          "type": "number"
+        }
+      },
+      "required": [
+        "nos",
+        "custo",
+        "plausibilidade",
+        "algoritmo"
+      ],
+      "title": "Rota",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Estado do ACO numa iteração, para o formigueiro desenhar (e para o replay).",
+  "properties": {
+    "caminhos": {
+      "items": {
+        "items": {
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "maxItems": 20,
+      "title": "Caminhos",
+      "type": "array"
+    },
+    "execucao_id": {
+      "format": "uuid",
+      "title": "Execucao Id",
+      "type": "string"
+    },
+    "feromonio": {
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,31}->[a-z][a-z0-9_]{0,31}$": {
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "title": "Feromonio",
+      "type": "object"
+    },
+    "iteracao": {
+      "minimum": 0,
+      "title": "Iteracao",
+      "type": "integer"
+    },
+    "melhor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Rota"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "semente": {
+      "title": "Semente",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "execucao_id",
+    "semente",
+    "iteracao",
+    "feromonio",
+    "caminhos"
+  ],
+  "title": "Snapshot",
+  "type": "object"
+}

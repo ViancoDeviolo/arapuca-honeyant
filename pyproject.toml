@@ -14,6 +14,14 @@ dependencies = [
 
 [project.scripts]
 honeyant-isca = "honeyant.apps.isca:main"
+honeyant-contratos = "honeyant.apps.contratos:main"
+
+[project.optional-dependencies]
+inteligencia = [
+    "numpy>=2",
+    "scikit-fuzzy>=0.5",
+    "scipy>=1.14",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
@@ -40,6 +48,7 @@ exclude_dirs = ["tests"]
 
 [dependency-groups]
 dev = [
+    "honeyant[inteligencia]",
     "bandit[toml]>=1.9.4",
     "import-linter>=2.15",
     "pytest>=9.2.0",
