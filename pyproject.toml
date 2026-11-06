@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 honeyant-isca = "honeyant.apps.isca:main"
 honeyant-contratos = "honeyant.apps.contratos:main"
+honeyant-verificar-ro = "honeyant.apps.verificar_ro:main"
 
 [project.optional-dependencies]
 inteligencia = [
