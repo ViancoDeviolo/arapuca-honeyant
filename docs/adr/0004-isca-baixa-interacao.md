@@ -30,6 +30,7 @@ Isca de **baixa interação**, escrita em Python:
 
 ## Política de uso da AWS
 
-- **Verificada em:** _(preencher)_
+- **Verificada em:** 2026-11-05 (versão da política: "Last Updated: July 1, 2021")
 - **Link:** https://aws.amazon.com/aup/
-- **Conclusão:** _(preencher: a política permite a isca? há condições, como não atacar terceiros e não gerar tráfego de saída?)_
+- **O que a política proíbe:** atividades ilegais ou fraudulentas; violar direitos de terceiros; ameaçar ou incentivar violência; conteúdo de exploração sexual infantil; **violar a segurança, a integridade ou a disponibilidade de qualquer usuário, rede, computador ou sistema de comunicação**; e envio de mensagens em massa não solicitadas (spam).
+- **Conclusão:** a política não menciona honeypots e não proíbe receber conexões e registrá-las na própria instância. O risco real seria a isca ser usada **contra terceiros** (ataque, retransmissão, spam), o que violaria o item de segurança. As decisões deste ADR fecham exatamente esse caminho: sem execução de comandos, sem retransmissão de mensagens MQTT e **sem nenhuma conexão de saída** no Security Group. A AWS pode investigar suspeitas de violação; este ADR e o `infra/aws/DEPLOY.md` documentam o que a isca faz e o que ela não consegue fazer.
