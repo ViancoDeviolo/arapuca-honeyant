@@ -1,0 +1,79 @@
+[
+  {
+    "schema_version": 1,
+    "aresta": "camera->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": null,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": false
+  },
+  {
+    "schema_version": 1,
+    "aresta": "camera->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "passivo",
+    "texto_puro": false,
+    "credencial_vazada": null,
+    "autenticacao_exigida": null,
+    "acl_bloqueia": null,
+    "alcancavel": null
+  },
+  {
+    "schema_version": 1,
+    "aresta": "roteador->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": false,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": true
+  },
+  {
+    "schema_version": 1,
+    "aresta": "lampada->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": false,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": true
+  },
+  {
+    "schema_version": 1,
+    "aresta": "tomada->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": false,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": true
+  },
+  {
+    "schema_version": 1,
+    "aresta": "termostato->broker",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": false,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": true
+  },
+  {
+    "schema_version": 1,
+    "aresta": "broker->fechadura",
+    "observado_em": "2026-11-06T12:30:00Z",
+    "fonte": "ativo",
+    "texto_puro": false,
+    "credencial_vazada": false,
+    "autenticacao_exigida": true,
+    "acl_bloqueia": true,
+    "alcancavel": true
+  }
+]

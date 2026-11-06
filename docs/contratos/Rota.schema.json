@@ -1,0 +1,47 @@
+{
+  "$defs": {
+    "Algoritmo": {
+      "enum": [
+        "aco",
+        "dijkstra"
+      ],
+      "title": "Algoritmo",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Caminho da internet até o alvo.\n\n`custo` é a soma de −ln(risco) das arestas; `plausibilidade = e^(−custo)` é o\nproduto dos riscos: um score para comparar rotas, não uma probabilidade calibrada.",
+  "properties": {
+    "algoritmo": {
+      "$ref": "#/$defs/Algoritmo"
+    },
+    "custo": {
+      "minimum": 0,
+      "title": "Custo",
+      "type": "number"
+    },
+    "nos": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$",
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Nos",
+      "type": "array"
+    },
+    "plausibilidade": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Plausibilidade",
+      "type": "number"
+    }
+  },
+  "required": [
+    "nos",
+    "custo",
+    "plausibilidade",
+    "algoritmo"
+  ],
+  "title": "Rota",
+  "type": "object"
+}
