@@ -1,0 +1,21 @@
+# Estágio 1: baixa a base offline de geolocalização (a isca não tem saída de rede).
+FROM debian:stable-slim AS geo
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl gzip \
+    && rm -rf /var/lib/apt/lists/*
+COPY infra/scripts/baixar-dbip.sh /baixar-dbip.sh
+RUN sh /baixar-dbip.sh /geo
+
+# Estágio 2: aplicação, sem privilégios.
+FROM python:3.12-slim AS app
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY src ./src
+RUN uv sync --locked --no-dev --no-editable
+ENV PATH="/app/.venv/bin:$PATH"
+COPY --from=geo /geo /geo
+USER 10001:10001
+EXPOSE 2323 18830
+CMD ["honeyant-isca", "servir"]
