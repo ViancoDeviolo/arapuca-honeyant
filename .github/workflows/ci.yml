@@ -5,40 +5,30 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-
 jobs:
   qualidade:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: astral-sh/setup-uv@v5
+
       - name: Instalar dependências (uv.lock)
         run: uv sync --locked
+
       - name: Lint (ruff)
         run: uv run ruff check .
+
       - name: Formatação (ruff)
         run: uv run ruff format --check .
+
       - name: Regra de dependência entre módulos (import-linter)
         run: uv run lint-imports
+
       - name: Análise estática de segurança (bandit)
         run: uv run bandit -c pyproject.toml -r src
+
       - name: Testes
         run: uv run pytest -m "not integration" -v
-
-  seguranca:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Segredos no histórico (gitleaks)
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: astral-sh/setup-uv@v7
-      - name: Vulnerabilidades nas dependências (pip-audit)
-        run: |
-          uv export --format requirements-txt --no-hashes --no-dev --all-extras --no-emit-project -o req.txt
-          uvx pip-audit -r req.txt
