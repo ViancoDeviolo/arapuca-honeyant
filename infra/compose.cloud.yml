@@ -1,0 +1,43 @@
+# Isca na EC2. Uso: docker compose -f infra/compose.cloud.yml up -d --build
+name: honeyant-nuvem
+
+services:
+  init-dados:
+    # Roda uma vez: dá ao usuário da isca (10001) a posse do volume de dados.
+    image: busybox:1.37
+    user: "0:0"
+    command: ["chown", "-R", "10001:10001", "/dados"]
+    volumes:
+      - dados:/dados
+    restart: "no"
+
+  isca:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile.isca
+    image: honeyant-isca:local
+    depends_on:
+      init-dados:
+        condition: service_completed_successfully
+    ports:
+      - "23:2323"
+      - "1883:18830"
+    volumes:
+      - dados:/dados
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 128
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  dados:
