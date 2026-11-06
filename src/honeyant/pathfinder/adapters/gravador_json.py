@@ -1,61 +1,17 @@
-"""Adaptador: grava uma execução do ACO em JSON (plano B: replay offline).
-
-Implementa a porta `ObservadorDeIteracao`: o ACO chama `ao_iterar` a cada
-iteração sem saber que existe um gravador. O JSON é determinístico (chaves
-ordenadas, sem espaços, floats já arredondados no snapshot), então a mesma
-semente gera o mesmo arquivo, byte a byte. O painel poderá reproduzir esse
-arquivo no formigueiro sem rodar o ACO de novo.
-
-PROVISÓRIO: o formato segue o snapshot local; muda junto com o contrato do
-`core` quando ele for combinado com o Gustavo.
-"""
-
-from __future__ import annotations
-
-import json
-from dataclasses import asdict
 from pathlib import Path
+from honeyant.core.rota import ObservadorDeIteracao, Snapshot
 
-from honeyant.pathfinder.dominio.aco import ParametrosACO, ResultadoACO
-from honeyant.pathfinder.dominio.snapshot import Snapshot
+class GravadorJson(ObservadorDeIteracao):
+    """Adaptador para persistência do replay das iterações do Pathfinder em formato JSONL."""
 
-VERSAO_DO_FORMATO = 1
+    def __init__(self, caminho_arquivo: Path | str):
+        self.caminho = Path(caminho_arquivo)
+        self.caminho.parent.mkdir(parents=True, exist_ok=True)
+        # Inicializa ou limpa o arquivo de destino
+        self.caminho.write_text("", encoding="utf-8")
 
-
-class GravadorJson:
-    """Guarda os snapshots recebidos e os transforma em JSON."""
-
-    def __init__(self) -> None:
-        self._snapshots: list[Snapshot] = []
-
-    def ao_iterar(self, snapshot: Snapshot) -> None:
-        self._snapshots.append(snapshot)
-
-    def serializar(
-        self, semente: int, params: ParametrosACO, resultado: ResultadoACO
-    ) -> str:
-        """JSON determinístico da execução (parâmetros, resultado e snapshots)."""
-        documento = {
-            "versao": VERSAO_DO_FORMATO,
-            "semente": semente,
-            "parametros": asdict(params),
-            "resultado": asdict(resultado),
-            "snapshots": [asdict(s) for s in self._snapshots],
-        }
-        return (
-            json.dumps(
-                documento, sort_keys=True, separators=(",", ":"), ensure_ascii=True
-            )
-            + "\n"
-        )
-
-    def salvar(
-        self,
-        caminho: Path,
-        semente: int,
-        params: ParametrosACO,
-        resultado: ResultadoACO,
-    ) -> None:
-        """Grava o JSON em disco; o caminho vem de quem chama, não de dados externos."""
-        texto = self.serializar(semente, params, resultado)
-        caminho.write_bytes(texto.encode("utf-8"))
+    def notificar(self, snapshot: Snapshot) -> None:
+        """Recebe um Snapshot do core e grava uma linha JSONL."""
+        linha = snapshot.model_dump_json()
+        with open(self.caminho, "a", encoding="utf-8") as f:
+            f.write(linha + "\n")
