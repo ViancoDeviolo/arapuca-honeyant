@@ -2,8 +2,39 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>HoneyAnt</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoneyAnt — Formigueiro</title>
+  <link rel="stylesheet" href="/static/formigueiro.css">
+  <script src="/static/formigueiro.js" defer></script>
 </head>
 <body>
+  <header>
+    <h1>HoneyAnt</h1>
+    <p id="perfil"></p>
+  </header>
+  <main>
+    <div class="controles">
+      <button id="prever" type="button">Prever invasão</button>
+      <label>Velocidade
+        <select id="velocidade">
+          <option value="0.25">0,25×</option>
+          <option value="0.5">0,5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </label>
+      <p id="status" role="status">Pronto.</p>
+    </div>
+    <svg id="formigueiro" viewBox="0 0 1000 640" role="img"
+         aria-label="Grafo da casa: túneis mais grossos têm mais feromônio">
+      <g id="tuneis"></g>
+      <g id="camaras"></g>
+    </svg>
+    <ul class="legenda">
+      <li><span class="amostra tunel"></span> túnel: espessura = feromônio</li>
+      <li><span class="amostra rota"></span> rota prevista (tracejado)</li>
+    </ul>
+  </main>
 </body>
 </html>
