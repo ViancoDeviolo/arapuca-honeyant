@@ -43,11 +43,14 @@ def test_grava_um_snapshot_por_iteracao():
     linhas = gravador.serializar().splitlines()
     assert gravador.total == 5
     assert len(linhas) == 5
-    assert [Snapshot.model_validate_json(linha).iteracao for linha in linhas] == [0, 1, 2, 3, 4]
+    iteracoes = [Snapshot.model_validate_json(linha).iteracao for linha in linhas]
+    assert iteracoes == [0, 1, 2, 3, 4]
 
 
 def test_mesma_semente_gera_replay_identico_byte_a_byte():
-    assert _gravar(42).serializar().encode() == _gravar(42).serializar().encode()
+    primeiro = _gravar(42).serializar().encode()
+    segundo = _gravar(42).serializar().encode()
+    assert primeiro == segundo
 
 
 def test_sementes_diferentes_geram_replays_diferentes():
@@ -73,7 +76,8 @@ def test_replay_da_casa_insegura_termina_na_rota_pela_camera():
 
 
 def test_replay_da_casa_segura_nao_passa_pela_camera():
-    ultimo = Snapshot.model_validate_json(_gravar(tipo="seguro").serializar().splitlines()[-1])
+    linha = _gravar(tipo="seguro").serializar().splitlines()[-1]
+    ultimo = Snapshot.model_validate_json(linha)
 
     assert ultimo.melhor is not None
     assert "camera->broker" not in ultimo.melhor.arestas
