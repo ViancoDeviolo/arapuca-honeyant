@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 honeyant-isca = "honeyant.apps.isca:main"
 honeyant-contratos = "honeyant.apps.contratos:main"
+honeyant-local = "honeyant.apps.local:main"
 
 [project.optional-dependencies]
 inteligencia = [
@@ -45,7 +46,10 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["integration: precisa de rede local ou docker"]
+markers = [
+    "integration: precisa de rede local ou docker",
+    "e2e: esqueleto ponta a ponta sobre as fixtures (sem rede)",
+]
 
 [tool.bandit]
 exclude_dirs = ["tests"]
