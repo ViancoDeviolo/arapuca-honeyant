@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "Aresta": {
+      "additionalProperties": false,
+      "description": "Ligação dirigida por onde um atacante pode passar de `origem` para `destino`.\n\n`fraqueza_fixa` só é usada nas arestas que o sensor não observa (lan, upnp e o\ntelnet vindo da internet). Nas outras fica `None` e a fraqueza vem da evidência.",
+      "properties": {
+        "destino": {
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "title": "Destino",
+          "type": "string"
+        },
+        "exposicao": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Exposicao",
+          "type": "integer"
+        },
+        "fraqueza_fixa": {
+          "anyOf": [
+            {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fraqueza Fixa"
+        },
+        "origem": {
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "title": "Origem",
+          "type": "string"
+        },
+        "servico": {
+          "$ref": "#/$defs/Servico"
+        }
+      },
+      "required": [
+        "origem",
+        "destino",
+        "servico",
+        "exposicao"
+      ],
+      "title": "Aresta",
+      "type": "object"
+    },
+    "No": {
+      "additionalProperties": false,
+      "description": "Um dispositivo (ou a internet). `x` e `y` fixam a câmara no formigueiro.",
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "rotulo": {
+          "maxLength": 40,
+          "minLength": 1,
+          "title": "Rotulo",
+          "type": "string"
+        },
+        "sensibilidade": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Sensibilidade",
+          "type": "integer"
+        },
+        "tipo": {
+          "$ref": "#/$defs/TipoDeNo"
+        },
+        "x": {
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "tipo",
+        "rotulo",
+        "x",
+        "y",
+        "sensibilidade"
+      ],
+      "title": "No",
+      "type": "object"
+    },
+    "Servico": {
+      "enum": [
+        "telnet",
+        "mqtt",
+        "http",
+        "upnp",
+        "lan"
+      ],
+      "title": "Servico",
+      "type": "string"
+    },
+    "TipoDeNo": {
+      "enum": [
+        "internet",
+        "camera",
+        "roteador",
+        "lampada",
+        "tomada",
+        "termostato",
+        "broker",
+        "fechadura"
+      ],
+      "title": "TipoDeNo",
+      "type": "string"
+    },
+    "TipoDePerfil": {
+      "enum": [
+        "inseguro",
+        "seguro"
+      ],
+      "title": "TipoDePerfil",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alvo": {
+      "const": "fechadura",
+      "default": "fechadura",
+      "title": "Alvo",
+      "type": "string"
+    },
+    "arestas": {
+      "items": {
+        "$ref": "#/$defs/Aresta"
+      },
+      "maxItems": 200,
+      "title": "Arestas",
+      "type": "array"
+    },
+    "nos": {
+      "items": {
+        "$ref": "#/$defs/No"
+      },
+      "maxItems": 50,
+      "minItems": 2,
+      "title": "Nos",
+      "type": "array"
+    },
+    "origem": {
+      "const": "internet",
+      "default": "internet",
+      "title": "Origem",
+      "type": "string"
+    },
+    "perfil": {
+      "$ref": "#/$defs/TipoDePerfil"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "perfil",
+    "nos",
+    "arestas"
+  ],
+  "title": "PerfilDaCasa",
+  "type": "object"
+}

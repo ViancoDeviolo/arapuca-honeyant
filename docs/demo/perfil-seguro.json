@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "perfil": "seguro",
+  "origem": "internet",
+  "alvo": "fechadura",
+  "nos": [
+    {"id": "internet",   "tipo": "internet",   "rotulo": "Internet",   "x": 500, "y": 40,  "sensibilidade": 0},
+    {"id": "camera",     "tipo": "camera",     "rotulo": "Câmera",     "x": 220, "y": 200, "sensibilidade": 6},
+    {"id": "roteador",   "tipo": "roteador",   "rotulo": "Roteador",   "x": 760, "y": 170, "sensibilidade": 7},
+    {"id": "lampada",    "tipo": "lampada",    "rotulo": "Lâmpada",    "x": 600, "y": 310, "sensibilidade": 2},
+    {"id": "tomada",     "tipo": "tomada",     "rotulo": "Tomada",     "x": 760, "y": 330, "sensibilidade": 3},
+    {"id": "termostato", "tipo": "termostato", "rotulo": "Termostato", "x": 900, "y": 310, "sensibilidade": 4},
+    {"id": "broker",     "tipo": "broker",     "rotulo": "Broker MQTT","x": 460, "y": 450, "sensibilidade": 8},
+    {"id": "fechadura",  "tipo": "fechadura",  "rotulo": "Fechadura",  "x": 460, "y": 570, "sensibilidade": 10}
+  ],
+  "arestas": [
+    {"origem": "internet",   "destino": "camera",     "servico": "telnet", "exposicao": 9, "fraqueza_fixa": 4},
+    {"origem": "internet",   "destino": "roteador",   "servico": "upnp",   "exposicao": 7, "fraqueza_fixa": 6},
+    {"origem": "camera",     "destino": "broker",     "servico": "mqtt",   "exposicao": 6},
+    {"origem": "roteador",   "destino": "broker",     "servico": "mqtt",   "exposicao": 5},
+    {"origem": "roteador",   "destino": "lampada",    "servico": "lan",    "exposicao": 5, "fraqueza_fixa": 3},
+    {"origem": "roteador",   "destino": "tomada",     "servico": "lan",    "exposicao": 5, "fraqueza_fixa": 3},
+    {"origem": "roteador",   "destino": "termostato", "servico": "lan",    "exposicao": 5, "fraqueza_fixa": 3},
+    {"origem": "lampada",    "destino": "broker",     "servico": "mqtt",   "exposicao": 5},
+    {"origem": "tomada",     "destino": "broker",     "servico": "mqtt",   "exposicao": 5},
+    {"origem": "termostato", "destino": "broker",     "servico": "mqtt",   "exposicao": 5},
+    {"origem": "broker",     "destino": "fechadura",  "servico": "mqtt",   "exposicao": 4}
+  ]
+}

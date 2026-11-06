@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "Servico": {
+      "enum": [
+        "telnet",
+        "mqtt",
+        "http",
+        "upnp",
+        "lan"
+      ],
+      "title": "Servico",
+      "type": "string"
+    }
+  },
+  "description": "Uma sessão recebida pela isca. Contém dado pessoal (IP): nunca sai da EC2.",
+  "properties": {
+    "asn": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Asn"
+    },
+    "bytes_recebidos": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Bytes Recebidos",
+      "type": "integer"
+    },
+    "comandos": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Comandos",
+      "type": "array"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "ip_origem": {
+      "anyOf": [
+        {
+          "format": "ipv4",
+          "type": "string"
+        },
+        {
+          "format": "ipv6",
+          "type": "string"
+        }
+      ],
+      "title": "Ip Origem"
+    },
+    "pais": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pais"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "senha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Senha"
+    },
+    "servico": {
+      "$ref": "#/$defs/Servico"
+    },
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "usuario": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Usuario"
+    }
+  },
+  "required": [
+    "ts",
+    "servico",
+    "ip_origem"
+  ],
+  "title": "EventoDeAtaque",
+  "type": "object"
+}

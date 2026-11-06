@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 honeyant-isca = "honeyant.apps.isca:main"
+honeyant-contratos = "honeyant.apps.contratos:main"
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
