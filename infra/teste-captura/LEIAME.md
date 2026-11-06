@@ -40,9 +40,14 @@ Wireshark/TShark 4.6.9.
 
 ## Observações
 
-- **Não use a tag `eclipse-mosquitto:2`**: a imagem publicada em 05/11/2026 está
-  quebrada (`/docker-entrypoint.sh` com 0 bytes, que dá `exec format error`, e o
-  binário sem os símbolos do OpenSSL). Por isso o compose fixa a `2.0.20` por digest.
+- As imagens ficam fixadas por digest (`eclipse-mosquitto:2.0.20` e `netshoot`), para o
+  teste rodar igual em qualquer máquina.
+- **Se um container falhar com `exec format error`** (ou com arquivos de 0 bytes dentro
+  da imagem), o problema é o cache local do Docker, que pode corromper quando o PC é
+  desligado de repente. Não é a imagem publicada. Em 06/11 isso aconteceu com
+  `eclipse-mosquitto:2`, `busybox`, `debian:stable-slim` e `python:3.12-slim`.
+  Correção: `docker image rm <imagem>`, `docker builder prune -af` e baixar de novo.
+  Para testar se a imagem roda: `docker run --rm --entrypoint /bin/sh <imagem> -c 'echo ok'`.
 - O `.pcap` gerado aqui só tem credencial falsa, mas não é captura oficial, por
   isso fica fora do git.
 - O `tcpdump` compartilha a rede do broker (`network_mode: "service:mosquitto"`),

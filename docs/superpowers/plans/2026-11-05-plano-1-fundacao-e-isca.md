@@ -869,10 +869,10 @@ Esta tarefa responde a uma pergunta: **o tcpdump num container consegue gravar o
 
 - [x] **Step 1: Instalar o Wireshark** no notebook da apresentação. ✅ Feito em 05/11.
 
-- [x] **Step 2: Escrever os arquivos** ✅ Feito em 06/11. A tag `eclipse-mosquitto:2` publicada em 05/11 está quebrada (entrypoint vazio, binário sem OpenSSL); usamos `eclipse-mosquitto:2.0.20` fixada por digest.
+- [x] **Step 2: Escrever os arquivos** ✅ Feito em 06/11, com `eclipse-mosquitto:2.0.20` fixada por digest. (A `:2` falhou no PC por cache local do Docker corrompido, não por defeito da imagem; ver `infra/teste-captura/LEIAME.md`.)
   - `mosquitto.conf`: `listener 1883` e `allow_anonymous true`.
   - `compose.yml`:
-    - `mosquitto`: `eclipse-mosquitto:2.0.20` (não a `:2`), com o conf montado;
+    - `mosquitto`: `eclipse-mosquitto:2.0.20`, com o conf montado;
     - `captura`: `nicolaka/netshoot`, com `network_mode: "service:mosquitto"`, `cap_add: [NET_RAW, NET_ADMIN]`, `command: tcpdump -i any -U -w /capturas/teste.pcap port 1883` e o volume `./capturas:/capturas`;
     - `cliente`: `eclipse-mosquitto:2.0.20`, com `command: mosquitto_pub -h mosquitto -u camera -P 123456 -t casa/teste -m oi` e `depends_on: [captura]`.
   - Depois do primeiro pull, fixar as imagens por digest (`docker image inspect --format "{{index .RepoDigests 0}}" <imagem>`).
