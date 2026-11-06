@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 honeyant-isca = "honeyant.apps.isca:main"
 honeyant-contratos = "honeyant.apps.contratos:main"
+honeyant-local = "honeyant.apps.local:main"
 honeyant-verificar-ro = "honeyant.apps.verificar_ro:main"
 
 [project.optional-dependencies]
@@ -22,6 +23,10 @@ inteligencia = [
     "numpy>=2",
     "scikit-fuzzy>=0.5",
     "scipy>=1.14",
+]
+painel = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
 ]
 
 [build-system]
@@ -42,19 +47,23 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-markers = ["integration: precisa de rede local ou docker"]
+markers = [
+    "integration: precisa de rede local ou docker",
+    "e2e: esqueleto ponta a ponta sobre as fixtures (sem rede)",
+]
 
 [tool.bandit]
 exclude_dirs = ["tests"]
 
 [dependency-groups]
 dev = [
-    "honeyant[inteligencia]",
+    "honeyant[inteligencia,painel]",
     "bandit[toml]>=1.9.4",
     "import-linter>=2.15",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1.post1",
     "ruff>=0.17.4",
+    "httpx>=0.28.1",
 ]
 
 [tool.importlinter]
