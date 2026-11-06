@@ -1,0 +1,21 @@
+# Verificação do mode=ro (spec, seção 3): outro container, com outro usuário, lê o banco
+# da isca sem conseguir escrever. Não sobe com `up -d` (profile).
+# Uso: docker compose -f infra/compose.cloud.yml -f infra/compose.verificar-ro.yml \
+#        run --rm verificar-ro
+services:
+  verificar-ro:
+    image: honeyant-isca:local
+    profiles: [verificacao]
+    # Usuário diferente do da isca (10001), no mesmo grupo: lê, mas não é dono do banco.
+    user: "10002:10001"
+    command: ["honeyant-verificar-ro"]
+    volumes:
+      # Com escrita no diretório: leitores em WAL precisam dos arquivos -wal e -shm.
+      - dados:/dados
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
