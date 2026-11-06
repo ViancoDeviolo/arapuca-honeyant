@@ -1,0 +1,16 @@
+# ANDAIME LOCAL do pathfinder. O pyproject oficial do repositório é do Lucas:
+# se já existir, ele vence. Não commitar este arquivo por cima do dele; copie
+# só as seções que fizerem falta (pytest pythonpath/markers e regras do ruff).
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+markers = ["perf: limites de tempo e carga do módulo"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F: erros e imports; I: ordem dos imports; B: bugs comuns; UP: sintaxe moderna.
+select = ["E", "F", "I", "B", "UP"]
