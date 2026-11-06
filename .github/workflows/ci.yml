@@ -13,21 +13,21 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # <--- Essencial para carregar todo o histórico e evitar o erro do Gitleaks
+          fetch-depth: 0  # Essencial para carregar todo o histórico e evitar o erro do Gitleaks
 
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Instalar dependências
+      - name: Instalar dependências e ferramentas de teste
         run: |
           python -m pip install --upgrade pip
-          pip install .
+          pip install ".[dev]"  # Instala o pacote com dependências opcionais (pytest, ruff, etc.)
 
       - name: Executar testes
         run: |
-          pytest
+          python -m pytest  # Executa os testes de forma segura via módulo Python
 
       - name: Varredura Gitleaks
         uses: gitleaks/gitleaks-action@v2
