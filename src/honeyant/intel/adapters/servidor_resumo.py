@@ -122,5 +122,10 @@ def criar_servidor(
     servidor = ThreadingHTTPServer((endereco, porta), Manipulador)
     servidor.daemon_threads = True
     if contexto_tls is not None:
-        servidor.socket = contexto_tls.wrap_socket(servidor.socket, server_side=True)
+        # Handshake só na primeira leitura, já no thread da conexão e sob o timeout de
+        # 10 s. Com o padrão (handshake dentro do accept()), um cliente que conecta e não
+        # manda nada travava o servidor inteiro.
+        servidor.socket = contexto_tls.wrap_socket(
+            servidor.socket, server_side=True, do_handshake_on_connect=False
+        )
     return servidor

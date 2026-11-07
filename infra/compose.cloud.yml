@@ -53,7 +53,12 @@ services:
         condition: service_started
     user: "10002:10001"
     command: ["honeyant-servir-resumo"]
-    env_file: resumo-api.env          # HONEYANT_RESUMO_CHAVE_HASH (dono 10002, 600; fora do git)
+    # HONEYANT_RESUMO_CHAVE_HASH, entre aspas simples. Lido pelo docker compose (usuário do
+    # deploy, permissão 600; fora do git). Opcional para o compose: sem ele a isca sobe
+    # normalmente e só o resumo-api recusa subir (sem a chave não há acesso).
+    env_file:
+      - path: resumo-api.env
+        required: false
     environment:
       HONEYANT_DB: /dados/isca.db
       HONEYANT_RESUMO_CERT: /certs/servidor.crt

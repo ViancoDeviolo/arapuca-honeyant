@@ -62,9 +62,16 @@ def relogio():
     return Relogio()
 
 
-def _fonte(cliente, tmp_path, relogio):
+def _fonte(cliente, tmp_path, relogio, **extra):
+    """Síncrona nos testes de lógica: a busca acontece dentro do resumo()."""
     return FonteDoResumoAoVivo(
-        cliente, tmp_path / "ultimo-resumo.json", Embutido(), relogio=relogio, agora=lambda: AGORA
+        cliente,
+        tmp_path / "ultimo-resumo.json",
+        Embutido(),
+        relogio=relogio,
+        agora=lambda: AGORA,
+        em_segundo_plano=extra.pop("em_segundo_plano", False),
+        **extra,
     )
 
 
@@ -226,3 +233,80 @@ def test_montar_usa_a_fonte_de_resumo_externa_e_a_rota_nao_muda():
     r = vivo.get("/api/v1/resumo").json()
     assert r["origem"] == "ao_vivo" and r["resumo"]["total_eventos"] == 999
     assert vivo.get("/api/v1/rotas").json() == padrao.get("/api/v1/rotas").json()
+
+
+# ---------- revisão final: página nunca espera a EC2, erros inesperados, 401, console ----------
+
+
+class ClienteLento:
+    def __init__(self, segundos):
+        self.segundos = segundos
+
+    def buscar(self):
+        time.sleep(self.segundos)
+        return _resumo(77)
+
+
+def test_em_segundo_plano_a_pagina_nao_espera_a_ec2(tmp_path):
+    fonte = FonteDoResumoAoVivo(
+        ClienteLento(1.5), tmp_path / "c.json", Embutido(), em_segundo_plano=True
+    )
+    inicio = time.monotonic()
+    r = fonte.resumo()
+    assert time.monotonic() - inicio < 0.5
+    assert r.origem == "real"  # na hora: o embutido
+    for _ in range(40):
+        time.sleep(0.1)
+        if fonte.resumo().origem == "ao_vivo":
+            break
+    assert fonte.resumo().resumo.total_eventos == 77
+
+
+class ClienteQueExplode:
+    def buscar(self):
+        raise UnicodeEncodeError("latin-1", "x", 0, 1, "aspas curvas na chave")
+
+
+def test_erro_inesperado_vira_falha_de_rede_e_nao_500(tmp_path, relogio):
+    fonte = _fonte(ClienteQueExplode(), tmp_path, relogio)
+    r = fonte.resumo()
+    assert r.origem == "real"
+    assert fonte.espera_s == 15  # recuo agendado como uma falha de rede
+
+
+def test_cliente_converte_qualquer_erro_em_falha_de_rede():
+    import ssl
+
+    cliente = ClienteResumo("https://127.0.0.1:1", "chave“", ssl.create_default_context(), 1)
+    with pytest.raises(FalhaDeRede):
+        cliente.buscar()
+
+
+def test_401_chama_ao_recusar_uma_vez(tmp_path, relogio):
+    recusas = []
+    fonte = _fonte(
+        ClienteFalso(ChaveInvalida()), tmp_path, relogio, ao_recusar=lambda: recusas.append(1)
+    )
+    for _ in range(3):
+        fonte.resumo()
+        relogio.t += 400
+    assert recusas == [1]
+
+
+def test_console_mostra_as_transicoes_sem_repetir(tmp_path, relogio):
+    mensagens = []
+    cliente = ClienteFalso(_resumo(1))
+    fonte = _fonte(cliente, tmp_path, relogio, avisar=mensagens.append)
+    fonte.resumo()
+    relogio.t += 16
+    fonte.resumo()  # continua ao vivo: sem mensagem nova
+    cliente.respostas = [FalhaDeRede("IP bloqueado por 15 min (muitas chaves erradas)")]
+    relogio.t += 16
+    fonte.resumo()
+    cliente.respostas = [ChaveInvalida()]
+    relogio.t += 400
+    fonte.resumo()
+    assert mensagens[0].startswith("Ao vivo")
+    assert "IP bloqueado por 15 min" in mensagens[1] and "offline" in mensagens[1].lower()
+    assert "chave de acesso inválida" in mensagens[2].lower()
+    assert len(mensagens) == 3

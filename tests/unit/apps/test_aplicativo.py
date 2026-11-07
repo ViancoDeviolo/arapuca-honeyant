@@ -85,7 +85,7 @@ def test_chave_colada_com_espacos_e_quebra_de_linha(tmp_path):
 def test_config_corrompido_pergunta_de_novo(tmp_path):
     config = tmp_path / "config.json"
     config.write_text('{"chave": ', encoding="utf-8")
-    assert ler_chave(config, perguntar=lambda _: "nova") == "nova"
+    assert ler_chave(config, perguntar=lambda _: "chave-nova-123") == "chave-nova-123"
 
 
 def test_enter_vazio_fica_sem_chave(tmp_path):
@@ -113,3 +113,21 @@ def test_abre_o_navegador_sozinho_salvo_com_honeyant_sem_navegador():
         "http://127.0.0.1:8765/", env={"HONEYANT_SEM_NAVEGADOR": "1"}, abrir=abertos.append
     )
     assert abertos == []
+
+
+def test_chave_com_aspas_curvas_e_recusada_e_pergunta_de_novo(tmp_path, capsys):
+    respostas = iter(["abc”", "abc-certa"])
+    chave = ler_chave(tmp_path / "config.json", perguntar=lambda _: next(respostas))
+    assert chave == "abc-certa"
+    assert "caracteres" in capsys.readouterr().out
+
+
+def test_duas_chaves_invalidas_fica_sem_chave(tmp_path):
+    assert ler_chave(tmp_path / "config.json", perguntar=lambda _: "com espaço") is None
+
+
+def test_esquecer_chave_faz_perguntar_na_proxima(tmp_path):
+    config = tmp_path / "config.json"
+    ler_chave(config, perguntar=lambda _: "chave-velha-123")
+    aplicativo.esquecer_chave(config)
+    assert ler_chave(config, perguntar=lambda _: "chave-nova-123") == "chave-nova-123"

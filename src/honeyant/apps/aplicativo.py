@@ -12,6 +12,7 @@ formigas de ataque usam o resumo ao vivo do resumo-api da EC2; sem acesso, o úl
 
 import json
 import os
+import re
 import socket
 import sys
 import threading
@@ -20,6 +21,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 PORTA_INICIAL = 8765
+# Chave de acesso: caracteres ASCII visíveis, sem espaço (token_urlsafe usa A-Z a-z 0-9 _ -).
+_CHAVE_VALIDA = re.compile(r"^[!-~]{8,256}$")
 TENTATIVAS = 10
 
 
@@ -65,14 +68,29 @@ def ler_chave(config: Path, perguntar: Callable[[str], str] = input) -> str | No
             return chave.strip()
     except (OSError, ValueError, AttributeError):
         pass
-    chave = perguntar(
-        "Cole a chave de acesso e tecle Enter (ou só Enter para usar o resumo guardado): "
-    ).strip()
-    if not chave:
-        return None
-    config.parent.mkdir(parents=True, exist_ok=True)
-    config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
-    return chave
+    for _tentativa in range(2):
+        chave = perguntar(
+            "Cole a chave de acesso e tecle Enter (ou só Enter para usar o resumo guardado): "
+        ).strip()
+        if not chave:
+            return None
+        if _CHAVE_VALIDA.match(chave):
+            config.parent.mkdir(parents=True, exist_ok=True)
+            config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            return chave
+        print(
+            "Essa chave tem caracteres que não são de uma chave (espaço ou aspas curvas do "
+            "WhatsApp?). Copie de novo, só a chave."
+        )
+    return None
+
+
+def esquecer_chave(config: Path) -> None:
+    """Depois de um 401: a próxima abertura pede a chave de novo (sem repetir a errada)."""
+    try:
+        config.write_text(json.dumps({}), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def abrir_navegador(
@@ -127,7 +145,11 @@ def main() -> int:
         print("Sem chave ou sem endereço da isca: usando o resumo guardado (offline).")
 
     fonte_resumo = FonteDoResumoAoVivo(
-        cliente, usuario / "ultimo-resumo.json", FonteDoResumoLocal(demo)
+        cliente,
+        usuario / "ultimo-resumo.json",
+        FonteDoResumoLocal(demo),
+        avisar=lambda mensagem: print(mensagem, flush=True),
+        ao_recusar=lambda: esquecer_chave(usuario / "config.json"),
     )
     app = montar(ConfigLocal(demo, "127.0.0.1", porta), fonte_resumo=fonte_resumo)
     endereco = f"http://127.0.0.1:{porta}/"

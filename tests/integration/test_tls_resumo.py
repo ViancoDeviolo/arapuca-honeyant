@@ -163,3 +163,20 @@ def test_conferir_resumo_com_chave_certa_e_errada(ca, tmp_path, capsys):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_cliente_silencioso_nao_trava_o_servidor(ca, tmp_path):
+    """Revisão final, item 1: com o handshake dentro do accept(), uma conexão TCP que não
+    manda nada travava o servidor inteiro. Agora o handshake é no thread de cada conexão."""
+    import socket
+
+    emitir("127.0.0.1", ca, tmp_path)
+    srv = _servir(tmp_path)
+    porta = srv.server_address[1]
+    silencioso = socket.create_connection(("127.0.0.1", porta))
+    try:
+        assert _buscar(porta, ca / "ca.crt") == 200
+    finally:
+        silencioso.close()
+        srv.shutdown()
+        srv.server_close()

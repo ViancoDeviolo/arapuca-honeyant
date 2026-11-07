@@ -72,7 +72,8 @@ chegando ao vivo** ([ADR 0011](docs/adr/0011-empacotamento-pyinstaller.md)).
 O cabeçalho mostra de onde vêm os dados: **"Ao vivo · atualizado às HH:MM"** (a sua rede
 alcança a isca); **"Resumo de <data>, offline"** (sem acesso: o último resumo guardado); ou
 o resumo que veio no app. A porta 443 da isca só aceita IPs cadastrados: em outra rede, o app
-fica offline sem travar. Chave errada: "chave de acesso inválida" e o app para de tentar.
+fica offline sem travar. Chave errada: "chave de acesso inválida", o app para de tentar e
+esquece a chave salva; feche, abra de novo e cole a chave certa.
 
 **Plano B** (se o Defender bloquear o `.exe`): pelo código-fonte, `uv run honeyant-local`
 (painel completo, sem o ao vivo).

@@ -78,9 +78,15 @@ class ClienteResumo:
         except urllib.error.HTTPError as erro:
             if erro.code in (401, 403):
                 raise ChaveInvalida from None
+            if erro.code == 429:
+                raise FalhaDeRede("IP bloqueado por 15 min (muitas chaves erradas)") from None
             raise FalhaDeRede(f"HTTP {erro.code}") from None
-        except (urllib.error.URLError, OSError, ssl.SSLError) as erro:
-            raise FalhaDeRede(str(getattr(erro, "reason", erro))) from None
+        except urllib.error.URLError as erro:
+            if isinstance(erro.reason, ssl.SSLCertVerificationError):
+                raise FalhaDeRede("certificado não confere") from None
+            raise FalhaDeRede(str(erro.reason)) from None
+        except Exception as erro:  # noqa: BLE001  # nada inesperado pode virar 500 na página
+            raise FalhaDeRede(type(erro).__name__) from None
         try:
             return ResumoDeAmeaca.model_validate_json(corpo)
         except ValidationError:
@@ -88,6 +94,11 @@ class ClienteResumo:
 
 
 class FonteDoResumoAoVivo:
+    """Porta `FonteDoResumo` do app. `resumo()` responde **na hora** com o nível disponível;
+    a consulta à EC2 roda num thread em segundo plano (`em_segundo_plano=False` só nos testes
+    de lógica). `avisar` recebe as mudanças de estado (o app manda para o console);
+    `ao_recusar` é chamado uma vez depois de um 401 (o app esquece a chave salva)."""
+
     def __init__(
         self,
         cliente: ClienteResumo | None,
@@ -95,41 +106,84 @@ class FonteDoResumoAoVivo:
         embutido: FonteDoResumo,
         relogio: Callable[[], float] = time.monotonic,
         agora: Callable[[], datetime] = lambda: datetime.now(UTC),
+        em_segundo_plano: bool = True,
+        avisar: Callable[[str], None] = lambda _mensagem: None,
+        ao_recusar: Callable[[], None] | None = None,
     ) -> None:
         self._cliente = cliente
         self._cache = cache
         self._embutido = embutido
         self._relogio = relogio
         self._agora = agora
+        self._em_segundo_plano = em_segundo_plano
+        self._avisar = avisar
+        self._ao_recusar = ao_recusar
         self._trava = threading.Lock()
         self._proxima = 0.0  # instante (relógio) da próxima consulta permitida
         self._falhas = 0
         self._parado = False  # depois de um 401
+        self._em_andamento = False
         self._ultimo_ao_vivo: ResumoComOrigem | None = None
+        self._estado = ""  # última mensagem mandada ao console
         self.espera_s: float = INTERVALO_S
 
     def resumo(self) -> ResumoComOrigem:
         with self._trava:
-            if self._cliente is None or self._parado:
+            consultar = (
+                self._cliente is not None
+                and not self._parado
+                and not self._em_andamento
+                and self._relogio() >= self._proxima
+            )
+            if consultar:
+                self._em_andamento = True
+        if consultar:
+            if self._em_segundo_plano:
+                threading.Thread(target=self._atualizar, daemon=True).start()
+            else:
+                self._atualizar()
+        with self._trava:
+            if self._parado or self._ultimo_ao_vivo is None:
                 return self._reserva()
-            if self._relogio() < self._proxima:
-                return self._ultimo_ao_vivo or self._reserva()
-            try:
-                resumo = self._cliente.buscar()
-            except ChaveInvalida:
+            return self._ultimo_ao_vivo
+
+    def _atualizar(self) -> None:
+        try:
+            resumo = self._cliente.buscar()
+        except ChaveInvalida:
+            with self._trava:
                 self._parado = True
-                return self._reserva()
-            except (FalhaDeRede, RespostaInvalida):
+            if self._ao_recusar is not None:
+                self._ao_recusar()
+            self._mudar_estado(
+                "Chave de acesso inválida: o app parou de consultar a isca. "
+                "Feche, abra de novo e cole a chave certa."
+            )
+            return
+        except Exception as erro:  # noqa: BLE001  # FalhaDeRede, RespostaInvalida e o resto
+            with self._trava:
                 self._falhas += 1
                 self._agendar(min(INTERVALO_S * 2 ** (self._falhas - 1), TETO_S))
                 self._ultimo_ao_vivo = None
-                return self._reserva()
+            self._mudar_estado(
+                f"Offline ({erro or type(erro).__name__}): usando o resumo guardado."
+            )
+            return
+        finally:
+            with self._trava:
+                self._em_andamento = False
+        atual = ResumoComOrigem(origem="ao_vivo", resumo=resumo, atualizado_em=self._agora())
+        self._gravar_cache(atual)
+        with self._trava:
             self._falhas = 0
             self._agendar(INTERVALO_S)
-            atual = ResumoComOrigem(origem="ao_vivo", resumo=resumo, atualizado_em=self._agora())
-            self._gravar_cache(atual)
             self._ultimo_ao_vivo = atual
-            return atual
+        self._mudar_estado("Ao vivo: os ataques da isca estão chegando.")
+
+    def _mudar_estado(self, mensagem: str) -> None:
+        if mensagem != self._estado:
+            self._estado = mensagem
+            self._avisar(mensagem)
 
     def _agendar(self, espera: float) -> None:
         self.espera_s = espera

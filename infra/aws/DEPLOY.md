@@ -188,13 +188,17 @@ cat > infra/resumo-api.env <<'EOF'
 HONEYANT_RESUMO_CHAVE_HASH='cole-aqui-o-hash-scrypt'
 EOF
 
-sudo chown 10002:10001 infra/resumo-api.env infra/certs-resumo/servidor.key infra/certs-resumo/servidor.crt
-sudo chmod 600 infra/resumo-api.env infra/certs-resumo/servidor.key
+# O .env é lido pelo docker compose (o seu usuário), não pelo container: fica com você, 600.
+chmod 600 infra/resumo-api.env
+# O certificado e a chave do servidor são lidos dentro do container (usuário 10002).
+sudo chown 10002:10001 infra/certs-resumo/servidor.key infra/certs-resumo/servidor.crt
+sudo chmod 600 infra/certs-resumo/servidor.key
 sudo chmod 644 infra/certs-resumo/servidor.crt
-ls -l infra/resumo-api.env infra/certs-resumo/   # dono 10002; .env e .key com -rw-------
+ls -l infra/resumo-api.env infra/certs-resumo/   # .env: seu usuário, -rw-------; .key: 10002, -rw-------
 
+docker compose version --short                  # precisa ser 2.24 ou mais novo (env_file opcional)
 docker compose -f infra/compose.cloud.yml build isca
-docker compose -f infra/compose.cloud.yml up -d resumo-api
+docker compose -f infra/compose.cloud.yml up -d --no-deps resumo-api   # --no-deps: não recria a isca
 docker compose -f infra/compose.cloud.yml logs resumo-api | tail -3   # {"acao": "resumo-api iniciado", ...}
 docker image prune -f
 ```
@@ -222,10 +226,18 @@ Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
 
 **5. Renovação (a cada 90 dias):** no PC, `uv run honeyant-certificados --ip <IP>` (a CA é a
 mesma; nenhum app precisa ser refeito), `scp` da pasta, os mesmos `chown`/`chmod` e
-`docker compose -f infra/compose.cloud.yml restart resumo-api`. Não precisa de janela de saída.
+`docker compose -f infra/compose.cloud.yml restart resumo-api` (o certificado é relido ao
+reiniciar). Não precisa de janela de saída.
 
-**Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env`, `restart
-resumo-api` e a chave nova para cada pessoa.
+**Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env` (passo 3) e
+**recriar** o container, porque o `restart` mantém o ambiente antigo:
+
+```bash
+docker compose -f infra/compose.cloud.yml up -d --no-deps --force-recreate resumo-api
+```
+
+Depois, a chave nova para cada pessoa. Quem tinha a antiga recebe "chave de acesso inválida":
+o app esquece a chave salva, e basta fechar, abrir de novo e colar a nova.
 
 ## 8. Acompanhamento e encerramento
 

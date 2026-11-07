@@ -78,7 +78,7 @@ Máquina de quem usa (Windows)                       EC2 (Security Group: 443 s�
 | Segredo | Onde fica | Quem gera |
 |---|---|---|
 | Chave de acesso (texto) | Com o Lucas; entregue a cada pessoa por fora (WhatsApp); no app, em `%APPDATA%\HoneyAnt\config.json` | `honeyant-chave-app` |
-| Hash da chave | EC2, `~/arapuca-honeyant/infra/resumo-api.env`, dono `10002`, permissão `600` | `honeyant-chave-app` |
+| Hash da chave | EC2, `~/arapuca-honeyant/infra/resumo-api.env`, dono **o usuário do deploy** (quem lê o `env_file` é o `docker compose`, não o container), permissão `600` | `honeyant-chave-app` |
 | Chave privada da **CA** | **Só no PC do Lucas**, `%USERPROFILE%\.honeyant\ca\ca.key`, fora do repositório; nunca vai para a EC2 | `honeyant-certificados` |
 | Certificado público da CA | Embutido no `.exe` (não é segredo) | `honeyant-certificados` |
 | Certificado e chave do servidor | EC2, `~/arapuca-honeyant/infra/certs-resumo/`, dono `10002`, `600` na chave | `honeyant-certificados`, copiados por `scp` |
