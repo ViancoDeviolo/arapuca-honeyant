@@ -23,6 +23,7 @@ honeyant-twin = "honeyant.apps.twin:main"
 honeyant-mitigar = "honeyant.apps.mitigar:main"
 honeyant-capturar = "honeyant.apps.capturar:main"
 honeyant-sensor = "honeyant.apps.sensor:main"
+honeyant-exportar-resumo = "honeyant.apps.exportar_resumo:main"
 
 [project.optional-dependencies]
 inteligencia = [
