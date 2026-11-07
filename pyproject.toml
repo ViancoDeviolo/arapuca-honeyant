@@ -22,6 +22,7 @@ honeyant-hash-senha = "honeyant.apps.hash_senha:main"
 honeyant-twin = "honeyant.apps.twin:main"
 honeyant-mitigar = "honeyant.apps.mitigar:main"
 honeyant-capturar = "honeyant.apps.capturar:main"
+honeyant-sensor = "honeyant.apps.sensor:main"
 
 [project.optional-dependencies]
 inteligencia = [
