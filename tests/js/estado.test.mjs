@@ -2,20 +2,38 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { estadoDoTunel, aceitarSnapshot } from "../../src/honeyant/painel/static/js/estado.js";
 
+// Duas formigas pela câmera e uma pelo roteador: internet->camera tem o dobro do tráfego.
 const snapshot = {
   execucao_id: "a",
-  feromonio: { "internet->camera": 2, "camera->broker": 1, "broker->fechadura": 2 },
+  feromonio: {
+    "internet->camera": 1, "camera->broker": 1, "broker->fechadura": 1,
+    "internet->roteador": 1, "roteador->broker": 1,
+  },
+  caminhos: [
+    ["internet", "camera", "broker", "fechadura"],
+    ["internet", "camera", "broker", "fechadura"],
+    ["internet", "roteador", "broker", "fechadura"],
+  ],
 };
 const analise = {
   rota: { nos: ["internet", "camera", "broker", "fechadura"] },
   bloqueadas: [],
 };
 
-test("largura proporcional ao feromônio", () => {
-  assert.equal(estadoDoTunel("internet->camera", snapshot, analise).largura, 22);
-  assert.equal(estadoDoTunel("camera->broker", snapshot, analise).largura, 13);
-  assert.equal(estadoDoTunel("roteador->broker", snapshot, analise).largura, 4);
-  assert.equal(estadoDoTunel("camera->broker", snapshot, analise).brilho, 0.5);
+test("largura proporcional ao tráfego de formigas na iteração", () => {
+  // broker->fechadura: 3 formigas (máximo) → 22; internet->camera: 2 → 4 + 18·2/3 = 16.
+  assert.equal(estadoDoTunel("broker->fechadura", snapshot, analise).largura, 22);
+  assert.equal(estadoDoTunel("internet->camera", snapshot, analise).largura, 16);
+  assert.equal(estadoDoTunel("roteador->broker", snapshot, analise).largura, 10);
+  assert.equal(estadoDoTunel("lampada->broker", snapshot, analise).largura, 4);
+  assert.equal(estadoDoTunel("roteador->broker", snapshot, analise).brilho, 1 / 3);
+});
+
+test("feromônio saturado não iguala os túneis", () => {
+  // O ACO satura em τ_max (todas as arestas iguais); a largura segue o tráfego.
+  const camera = estadoDoTunel("internet->camera", snapshot, analise).largura;
+  const roteador = estadoDoTunel("internet->roteador", snapshot, analise).largura;
+  assert.ok(camera > roteador);
 });
 
 test("aresta bloqueada vira cadeado", () => {

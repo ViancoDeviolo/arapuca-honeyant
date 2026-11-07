@@ -4,14 +4,25 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
-from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
+from honeyant.core.casa import PerfilDaCasa, TipoDeNo, TipoDePerfil
 from honeyant.painel.app import criar_app
 
 STATIC = Path(__file__).parents[3] / "src" / "honeyant" / "painel" / "static"
 DEMO = Path(__file__).parents[3] / "docs" / "demo"
 XSS = "<img src=x onerror=alert(1)>"
+PROIBIDOS = (
+    "innerHTML",
+    "outerHTML",
+    "insertAdjacentHTML",
+    "document.write",
+    "eval(",
+    "new Function",
+    "srcdoc",
+)
+JS = sorted((STATIC / "js").glob("*.js"))
 
 
 class _Coletor(HTMLParser):
@@ -32,33 +43,50 @@ class _Coletor(HTMLParser):
             self.estilos_inline += 1
 
 
-def _html() -> _Coletor:
+def _html_texto() -> str:
+    return (STATIC / "index.html").read_text(encoding="utf-8")
+
+
+def test_html_sem_inline():
     c = _Coletor()
-    c.feed((STATIC / "index.html").read_text(encoding="utf-8"))
-    return c
-
-
-def test_html_sem_script_nem_estilo_inline():
-    c = _html()
-    assert c.scripts and all(s.get("src") for s in c.scripts)
+    c.feed(_html_texto())
+    assert c.scripts
+    assert all(s.get("type") == "module" and s.get("src") for s in c.scripts)
     assert c.atributos_on == []
     assert c.estilos_inline == 0
 
 
-def test_html_tem_os_elementos_que_o_js_usa():
-    texto = (STATIC / "index.html").read_text(encoding="utf-8")
-    js = (STATIC / "formigueiro.js").read_text(encoding="utf-8")
-    for id_ in re.findall(r'getElementById\("([^"]+)"\)', js):
-        assert f'id="{id_}"' in texto, id_
+def test_arquivos_antigos_removidos():
+    assert not (STATIC / "formigueiro.js").exists()
+    assert not (STATIC / "formigueiro.css").exists()
 
 
-def test_js_nunca_usa_innerHTML_nem_eval():
-    js = (STATIC / "formigueiro.js").read_text(encoding="utf-8")
-    for proibido in ("innerHTML", "outerHTML", "insertAdjacentHTML", "eval(", "new Function"):
-        assert proibido not in js
+@pytest.mark.parametrize("arquivo", JS, ids=lambda p: p.name)
+def test_todos_os_js_sem_api_proibida(arquivo):
+    texto = arquivo.read_text(encoding="utf-8")
+    for proibido in PROIBIDOS:
+        assert proibido not in texto, f"{arquivo.name} usa {proibido}"
 
 
-def test_rotulo_com_html_sai_como_json_intacto():
+def test_ids_usados_pelo_js_existem():
+    html = _html_texto()
+    usados = set()
+    for arquivo in JS:
+        texto = arquivo.read_text("utf-8")
+        usados |= set(re.findall(r'(?:getElementById|\$)\("([^"]+)"\)', texto))
+    assert usados
+    for id_ in usados:
+        assert f'id="{id_}"' in html, id_
+
+
+def test_icones_cobrem_os_tipos():
+    svg = (STATIC / "icones.svg").read_text(encoding="utf-8")
+    for tipo in TipoDeNo:
+        assert f'<symbol id="{tipo.value}"' in svg, tipo.value
+    assert '<symbol id="cadeado"' in svg
+
+
+def test_rotulo_hostil_sai_como_json():
     dados = PerfilDaCasa.model_validate_json(
         (DEMO / "perfil-inseguro.json").read_text("utf-8")
     ).model_dump()
@@ -74,3 +102,19 @@ def test_rotulo_com_html_sai_como_json_intacto():
     r = TestClient(app, base_url="http://127.0.0.1").get("/api/v1/casa")
     assert r.headers["content-type"].startswith("application/json")
     assert r.json()["nos"][1]["rotulo"] == XSS
+
+
+@pytest.mark.parametrize(
+    "caminho",
+    ["/static/painel.css", "/static/icones.svg", "/static/layout.json", "/static/js/app.js"],
+)
+def test_estaticos_servidos(caminho):
+    class Nada:
+        pass
+
+    casas = {
+        t: PerfilDaCasa.model_validate_json((DEMO / f"perfil-{t.value}.json").read_text("utf-8"))
+        for t in TipoDePerfil
+    }
+    r = TestClient(criar_app(casas, Nada(), Nada()), base_url="http://127.0.0.1").get(caminho)
+    assert r.status_code == 200

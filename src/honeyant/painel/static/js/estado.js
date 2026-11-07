@@ -11,12 +11,26 @@ function arestasDaRota(analise) {
   return chaves;
 }
 
+// Quantas formigas da iteração passaram por cada túnel.
+function trafego(caminhos) {
+  const contagem = new Map();
+  for (const nos of caminhos ?? []) {
+    for (let i = 0; i + 1 < nos.length; i += 1) {
+      const chave = `${nos[i]}->${nos[i + 1]}`;
+      contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+    }
+  }
+  return contagem;
+}
+
+// A largura segue o tráfego de formigas da iteração, não τ/τ_max: com os parâmetros do
+// ACO (τ_max = 1, todas as formigas depositam), o feromônio satura no teto por volta da
+// iteração 24 e todos os túneis ficariam iguais. O tráfego é guiado pelo feromônio e
+// continua diferenciando os caminhos.
 export function estadoDoTunel(chave, snapshot, analise) {
-  const feromonio = snapshot?.feromonio ?? {};
-  const valores = Object.values(feromonio);
-  const tauMax = valores.length ? Math.max(...valores) : 0;
-  const tau = feromonio[chave];
-  const brilho = tau !== undefined && tauMax > 0 ? tau / tauMax : 0;
+  const contagem = trafego(snapshot?.caminhos);
+  const maximo = contagem.size ? Math.max(...contagem.values()) : 0;
+  const brilho = maximo > 0 ? (contagem.get(chave) ?? 0) / maximo : 0;
   return {
     largura: LARGURA_MIN + (LARGURA_MAX - LARGURA_MIN) * brilho,
     brilho,
