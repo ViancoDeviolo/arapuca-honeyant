@@ -360,6 +360,34 @@ h1, h2, p { margin: 0; }
 }
 .cadeado { display: none; color: var(--cadeado); }
 .bloqueado .cadeado { display: inline; }
+
+/* Desmoronamento (spec 4.6): pisca, abre das pontas com entulho, cadeado entra. */
+.desmoronando .tunel-miolo { animation: piscar 0.1s steps(2, jump-none) 3; }
+@keyframes piscar {
+  from { opacity: 1; stroke: var(--formiga); }
+  to { opacity: 0.15; }
+}
+.ruina {
+  fill: none;
+  stroke: var(--bloqueado);
+  stroke-width: 4px;
+  stroke-dasharray: 8 8;
+  stroke-linecap: butt;
+  opacity: 0.8;
+}
+.entulho {
+  fill: var(--tunel);
+  animation: entulho 0.55s ease-out forwards;
+  transform-box: fill-box;
+}
+@keyframes entulho {
+  to { translate: var(--dx) var(--dy); rotate: 90deg; opacity: 0; }
+}
+.recem-bloqueado .cadeado { animation: cadeado-entra 0.18s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes cadeado-entra {
+  from { scale: 0.2; opacity: 0; }
+  to { scale: 1; opacity: 1; }
+}
 .seta { fill: none; stroke: var(--seta); stroke-width: 2.8; stroke-linecap: square; stroke-linejoin: miter; }
 
 /* Entradas */
@@ -409,6 +437,72 @@ h1, h2, p { margin: 0; }
 .passos li::marker { color: var(--texto-2); }
 .passo-fraco { color: var(--ambar); font-weight: 700; }
 .ponto-fraco { color: var(--texto-2); font-size: 14px; }
+
+/* Botões secundários da demo e nota da mitigação */
+.botao-desfazer { border-color: var(--verde-azulado); color: var(--verde-azulado); }
+.motivo { color: var(--texto-2); font-size: 13px; }
+.nota-mitigacao {
+  align-self: start;
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--verde-azulado);
+  background: var(--protegida-fundo);
+  color: var(--texto);
+  font-size: 14px;
+  border-radius: 0 var(--raio-pequeno) var(--raio-pequeno) 0;
+}
+.nota-mitigacao code { font-size: 13px; }
+
+/* Antes e depois: o número grande e as duas rotas como linhas de metrô em miniatura. */
+.comparativo-numero {
+  font-size: 30px;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--texto);
+}
+.comparativo-explica { color: var(--texto-2); font-size: 13px; margin: 4px 0 14px; }
+.trajeto { margin: 0; padding-left: 10px; border-left: 3px solid transparent; }
+.trajeto + .trajeto { margin-top: 12px; }
+.trajeto[aria-current="true"] { border-left-color: var(--linha); }
+.trajeto-cabeca {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--texto-2);
+  margin-bottom: 6px;
+}
+.trajeto-cabeca strong { color: var(--texto); font-weight: 600; }
+.linha-metro {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+  font-size: 13px;
+  --cor-linha: var(--ambar);
+}
+.trajeto-depois .linha-metro { --cor-linha: var(--verde-azulado); }
+.linha-metro li { display: flex; align-items: center; }
+.linha-metro .estacao {
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  background: var(--fundo-cena);
+  border: 2px solid var(--cor-linha);
+}
+/* O trilho vem antes de cada estação: se a linha quebrar, ela continua no começo. */
+.linha-metro li + li > .trilho {
+  width: 14px;
+  height: 3px;
+  margin: 0 6px;
+  background: var(--cor-linha);
+}
+.linha-metro .sem-rota { color: var(--texto-2); }
+.linha-metro .sem-rota .estacao { border-style: dashed; }
 
 /* Seletor de tema: amostras redondas, cada uma pintada com as cores do próprio tema. */
 body { transition: background-color 0.25s, color 0.25s; }

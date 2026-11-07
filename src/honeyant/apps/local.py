@@ -22,6 +22,7 @@ from honeyant.painel.app import Encaixe, criar_app
 from honeyant.painel.modelos import AnaliseDeRota, ResumoComOrigem
 from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.fuzzy import ModeloDeRisco
+from honeyant.pathfinder.ports import ObservadorDeIteracao
 from honeyant.pathfinder.prever import ColetorDeSnapshots, analisar_rota, prever_rota
 
 HOSTS_LOCAIS = frozenset({"127.0.0.1", "localhost", "::1"})
@@ -71,10 +72,20 @@ class FonteDasFixtures:
         self._demo_dir = demo_dir
         self._modelo = ModeloDeRisco()
 
+    @property
+    def casas(self) -> dict[TipoDePerfil, PerfilDaCasa]:
+        return dict(self._casas)
+
+    def executar(
+        self, perfil: TipoDePerfil, semente: int, observadores: Sequence[ObservadorDeIteracao]
+    ) -> None:
+        """Roda o ACO no perfil, avisando cada observador a cada iteração."""
+        aco = ACO(ParametrosACO(semente=semente), observadores=list(observadores))
+        prever_rota(self._casas[perfil], self._evidencias[perfil], self._resumo, aco, self._modelo)
+
     def snapshots(self, perfil: TipoDePerfil, semente: int) -> list[Snapshot]:
         coletor = ColetorDeSnapshots()
-        aco = ACO(ParametrosACO(semente=semente), observadores=[coletor])
-        prever_rota(self._casas[perfil], self._evidencias[perfil], self._resumo, aco, self._modelo)
+        self.executar(perfil, semente, [coletor])
         return coletor.snapshots
 
     def replay(self, perfil: TipoDePerfil) -> list[Snapshot] | None:
@@ -116,6 +127,25 @@ class FonteDoResumoLocal:
         return ResumoComOrigem(origem="exemplo", resumo=ResumoDeAmeaca.model_validate(exemplo))
 
 
+def carregar_fontes(demo_dir: Path) -> tuple[FonteDasFixtures, FonteDoResumoLocal]:
+    """Lê perfis, evidências e resumo de `demo_dir` (o painel e o gravador de replay)."""
+    casas = {
+        t: PerfilDaCasa.model_validate(_ler_json(demo_dir / f"perfil-{t.value}.json"))
+        for t in TipoDePerfil
+    }
+    evidencias = {
+        t: [
+            EvidenciaDeRede.model_validate(e)
+            for e in _ler_json(demo_dir / f"evidencias-{t.value}.json")
+        ]
+        for t in TipoDePerfil
+    }
+    fonte_resumo = FonteDoResumoLocal(demo_dir)
+    # As rotas usam o mesmo resumo que o cartão mostra (spec do painel, 3.7).
+    fonte = FonteDasFixtures(casas, evidencias, fonte_resumo.resumo().resumo, demo_dir)
+    return fonte, fonte_resumo
+
+
 def montar(
     config: ConfigLocal,
     intervalo_base: float = 0.6,
@@ -123,20 +153,9 @@ def montar(
     encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
 ) -> FastAPI:
     """Monta o painel. O login (PR do Gustavo) chega pelo `encaixe` (spec, seção 3.5)."""
-    d = config.demo_dir
-    casas = {
-        t: PerfilDaCasa.model_validate(_ler_json(d / f"perfil-{t.value}.json"))
-        for t in TipoDePerfil
-    }
-    evidencias = {
-        t: [EvidenciaDeRede.model_validate(e) for e in _ler_json(d / f"evidencias-{t.value}.json")]
-        for t in TipoDePerfil
-    }
-    fonte_resumo = FonteDoResumoLocal(d)
-    # As rotas usam o mesmo resumo que o cartão mostra (spec do painel, 3.7).
-    fonte = FonteDasFixtures(casas, evidencias, fonte_resumo.resumo().resumo, d)
+    fonte, fonte_resumo = carregar_fontes(config.demo_dir)
     return criar_app(
-        casas,
+        fonte.casas,
         fonte,
         fonte_resumo,
         intervalo_base=intervalo_base,

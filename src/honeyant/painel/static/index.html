@@ -42,6 +42,9 @@
         <input type="radio" name="velocidade" id="vel-4" value="4"><label for="vel-4">4×</label>
       </div>
     </fieldset>
+    <button id="mitigar" class="botao" type="button" disabled>Aplicar mitigação (perfil seguro)</button>
+    <button id="replay" class="botao" type="button" disabled>Replay</button>
+    <span id="motivo-replay" class="motivo" hidden></span>
     <p id="status" class="status" role="status">Carregando a casa…</p>
   </section>
 
@@ -95,10 +98,24 @@
     </figure>
 
     <aside id="lateral" class="lateral" aria-label="Detalhes da rota">
+      <p id="nota-mitigacao" class="nota-mitigacao" hidden>Simulação do perfil mitigado. A mitigação real e as capturas estão em <code>docs/capturas/</code>.</p>
       <section class="cartao">
         <h2>Rota prevista</h2>
         <ol id="passos" class="passos"></ol>
         <p id="ponto-fraco" class="ponto-fraco"></p>
+      </section>
+      <section class="cartao" aria-labelledby="titulo-comparativo">
+        <h2 id="titulo-comparativo">Antes e depois</h2>
+        <p id="comparativo-numero" class="comparativo-numero"></p>
+        <p class="comparativo-explica">A rota com a mitigação, comparada à rota de hoje.</p>
+        <div id="trajeto-antes" class="trajeto trajeto-antes">
+          <p class="trajeto-cabeca"><strong>Hoje<span id="na-tela-antes" class="so-leitor"></span></strong><span id="custo-antes"></span></p>
+          <ol id="linha-antes" class="linha-metro"></ol>
+        </div>
+        <div id="trajeto-depois" class="trajeto trajeto-depois">
+          <p class="trajeto-cabeca"><strong>Com a mitigação<span id="na-tela-depois" class="so-leitor"></span></strong><span id="custo-depois"></span></p>
+          <ol id="linha-depois" class="linha-metro"></ol>
+        </div>
       </section>
     </aside>
   </main>

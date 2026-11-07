@@ -53,6 +53,24 @@ export function pontoNoCaminho(caminho, distancia) {
   return { x, y, dx: 0, dy: 0 };
 }
 
+// Pedaço do caminho entre duas distâncias medidas desde a origem, com os cantos do meio.
+// Usado no desmoronamento: o tracejado cresce das duas pontas para o meio.
+export function trecho(caminho, de, ate) {
+  const total = comprimento(caminho);
+  const a = Math.max(0, Math.min(de, total));
+  const b = Math.max(a, Math.min(ate, total));
+  const inicio = pontoNoCaminho(caminho, a);
+  const pontos = [[inicio.x, inicio.y]];
+  let acumulado = 0;
+  for (let i = 1; i < caminho.length - 1; i += 1) {
+    acumulado += tamanho([caminho[i - 1], caminho[i]]);
+    if (acumulado > a && acumulado < b) pontos.push([...caminho[i]]);
+  }
+  const fim = pontoNoCaminho(caminho, b);
+  pontos.push([fim.x, fim.y]);
+  return pontos;
+}
+
 function distanciaAoSegmento(px, py, [[x0, y0], [x1, y1]]) {
   const vx = x1 - x0;
   const vy = y1 - y0;

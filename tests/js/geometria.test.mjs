@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  caminhoDoTunel, ehOrtogonal, naGrade, comprimento, pontoNoCaminho, invadeEntrada,
+  caminhoDoTunel, ehOrtogonal, naGrade, comprimento, pontoNoCaminho, invadeEntrada, trecho,
   sobreposicao, caixaDoRotulo, cruzaCaixa, GRADE, RAIO_ENTRADA, FOLGA,
 } from "../../src/honeyant/painel/static/js/geometria.js";
 
@@ -138,4 +138,12 @@ test("sem os cantos do layout o teste de folga acusa", () => {
   const acusados = tuneis(perfis[0], semCantos).filter((t) =>
     perfis[0].nos.some((n) => !t.pontas.includes(n) && invadeEntrada(t.caminho, n)));
   assert.ok(acusados.some((t) => t.nome === "roteador->broker"));
+});
+
+test("trecho corta o caminho entre duas distâncias e mantém os cantos do meio", () => {
+  const l = [[0, 0], [100, 0], [100, 50]]; // 150 de comprimento, canto em 100
+  assert.deepEqual(trecho(l, 0, 30), [[0, 0], [30, 0]]);
+  assert.deepEqual(trecho(l, 80, 120), [[80, 0], [100, 0], [100, 20]]);
+  assert.deepEqual(trecho(l, 120, 999), [[100, 20], [100, 50]]);
+  assert.deepEqual(trecho(l, 40, 10), [[40, 0], [40, 0]]); // invertido vira ponto
 });
