@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HoneyAnt · Formigueiro</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/temas.css">
   <link rel="stylesheet" href="/static/painel.css">
   <script type="module" src="/static/js/tema.js"></script>
   <script type="module" src="/static/js/app.js"></script>
@@ -27,6 +28,9 @@
         <input type="radio" name="tema" id="tema-contraste" value="contraste"><label for="tema-contraste" class="amostra-tema tema-contraste" title="Alto contraste"><span class="so-leitor">Alto contraste</span></label>
         <span id="nome-tema" class="nome-tema" aria-hidden="true">Noite</span>
       </fieldset>
+      <form id="form-sair" class="sair" method="post" action="/logout" hidden>
+        <button class="botao" type="submit">Sair</button>
+      </form>
     </div>
   </header>
 

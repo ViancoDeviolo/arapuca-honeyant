@@ -1,0 +1,188 @@
+/* Temas do painel e do login (escolha no seletor do painel, salva no navegador).
+   "--ambar" é a cor de destaque (rota, alvo, botão principal), mesmo quando o tema
+   não usa âmbar. "--erro" é o texto de erro, legível sobre "--superficie". */
+
+:root,
+:root[data-tema="noite"] {
+  --fundo: #191b1f;
+  --superficie: #23262b;
+  --superficie-2: #2c3036;
+  --linha: #3a3f47;
+  --texto: #ebe6dc;
+  --texto-2: #b3ada3;
+  --ambar: #e0a33a;
+  --ambar-escuro: #3a2a0e;
+  --destaque-tinta: #1d1405;
+  --destaque-hover: #eab354;
+  --destaque-ativo: #c98d27;
+  --seta: #2b1c06;
+  --violeta: #a48cf2;
+  --verde-azulado: #4fb3a3;
+  --protegida-fundo: #0f2a26;
+  --fundo-cena: #14161a;
+  --borda-externa: #3a414c;
+  --tunel: #6b7685;
+  --tunel-base: #0c0e11;
+  --tunel-fundo: #22262d;
+  --amostra-fundo: #4a515c;
+  --bloqueado: #9aa1ab;
+  --cadeado: #e4e7eb;
+  --entrada-fundo: #1d2127;
+  --entrada-borda: #5d6572;
+  --entrada-icone: #d6dae0;
+  --entrada-origem-fundo: #222833;
+  --entrada-origem-borda: #7d8899;
+  --formiga: #ff3b30;
+  --formiga-borda: #2a0606;
+  --formiga-ataque-borda: #ffe8e5;
+  --erro: #ff8f8f;
+  --fonte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --raio: 10px;
+  --raio-pequeno: 6px;
+  color-scheme: dark;
+}
+
+/* Papel: planta impressa, para sala clara ou projetor fraco. */
+:root[data-tema="papel"] {
+  --fundo: #efeae0;
+  --superficie: #faf7f1;
+  --superficie-2: #e8e2d6;
+  --linha: #cfc6b5;
+  --texto: #221f1a;
+  --texto-2: #5a5348;
+  --ambar: #a35f00;
+  --ambar-escuro: #f6e3c2;
+  --destaque-tinta: #fffaf0;
+  --destaque-hover: #b86d05;
+  --destaque-ativo: #8a5000;
+  --seta: #fff4dd;
+  --verde-azulado: #1d7a6c;
+  --protegida-fundo: #d6efe9;
+  --fundo-cena: #f6f2ea;
+  --borda-externa: #c9bfac;
+  --tunel: #8c8475;
+  --tunel-base: #ddd5c6;
+  --tunel-fundo: #e6dfd2;
+  --amostra-fundo: #b9b09f;
+  --bloqueado: #6e675c;
+  --cadeado: #2d2924;
+  --entrada-fundo: #ffffff;
+  --entrada-borda: #9d9586;
+  --entrada-icone: #3a352e;
+  --entrada-origem-fundo: #ece6db;
+  --entrada-origem-borda: #7f7768;
+  --formiga: #d22a1e;
+  --formiga-borda: #5a0c06;
+  --formiga-ataque-borda: #ffffff;
+  --erro: #b3261e;
+  color-scheme: light;
+}
+
+/* Terra: o formigueiro de verdade, túneis cavados no barro e rota cor de mel. */
+:root[data-tema="terra"] {
+  --fundo: #24180f;
+  --superficie: #2f2016;
+  --superficie-2: #3b291c;
+  --linha: #553d2b;
+  --texto: #f3e4cc;
+  --texto-2: #c9b293;
+  --ambar: #f4b43a;
+  --ambar-escuro: #4a3110;
+  --destaque-tinta: #2a1a04;
+  --destaque-hover: #f8c45e;
+  --destaque-ativo: #d99a22;
+  --seta: #3a2505;
+  --verde-azulado: #8fc27a;
+  --protegida-fundo: #22301a;
+  --fundo-cena: #1b120b;
+  --borda-externa: #4d3726;
+  --tunel: #a9825c;
+  --tunel-base: #120b06;
+  --tunel-fundo: #33241a;
+  --amostra-fundo: #6b4f39;
+  --bloqueado: #c7ad8d;
+  --cadeado: #f6e9d6;
+  --entrada-fundo: #2b1d13;
+  --entrada-borda: #87674b;
+  --entrada-icone: #ecd9bd;
+  --entrada-origem-fundo: #35261a;
+  --entrada-origem-borda: #a58566;
+  --formiga: #ff4a36;
+  --formiga-borda: #2b0703;
+  --formiga-ataque-borda: #ffe6d6;
+  --erro: #ff9a7a;
+  color-scheme: dark;
+}
+
+/* Radar: monitor de fósforo de sala de segurança, fonte de terminal. */
+:root[data-tema="radar"] {
+  --fundo: #06110b;
+  --superficie: #0b1a12;
+  --superficie-2: #11261a;
+  --linha: #1f4a32;
+  --texto: #c9f8d7;
+  --texto-2: #7fc79c;
+  --ambar: #e6ff5c;
+  --ambar-escuro: #26300a;
+  --destaque-tinta: #0b1402;
+  --destaque-hover: #efff8a;
+  --destaque-ativo: #c9e23a;
+  --seta: #1a2400;
+  --verde-azulado: #49e3c2;
+  --protegida-fundo: #08291f;
+  --fundo-cena: #030a06;
+  --borda-externa: #1b4129;
+  --tunel: #34a063;
+  --tunel-base: #010402;
+  --tunel-fundo: #0c2416;
+  --amostra-fundo: #23593a;
+  --bloqueado: #8fd3a8;
+  --cadeado: #d9ffe5;
+  --entrada-fundo: #071510;
+  --entrada-borda: #2e8a55;
+  --entrada-icone: #b8f5cc;
+  --entrada-origem-fundo: #0c2017;
+  --entrada-origem-borda: #4fbf7e;
+  --formiga: #ff3d6e;
+  --formiga-borda: #2b0310;
+  --formiga-ataque-borda: #ffe1ea;
+  --erro: #ff7a9c;
+  --fonte: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+
+/* Contraste: preto, branco e amarelo, para leitura difícil ou tela lavada. */
+:root[data-tema="contraste"] {
+  --fundo: #000000;
+  --superficie: #000000;
+  --superficie-2: #1a1a1a;
+  --linha: #9a9a9a;
+  --texto: #ffffff;
+  --texto-2: #e6e6e6;
+  --ambar: #ffd400;
+  --ambar-escuro: #000000;
+  --destaque-tinta: #000000;
+  --destaque-hover: #ffe24d;
+  --destaque-ativo: #e6bf00;
+  --seta: #000000;
+  --verde-azulado: #00f0c8;
+  --protegida-fundo: #000000;
+  --fundo-cena: #000000;
+  --borda-externa: #ffffff;
+  --tunel: #d0d0d0;
+  --tunel-base: #000000;
+  --tunel-fundo: #2e2e2e;
+  --amostra-fundo: #8a8a8a;
+  --bloqueado: #ffffff;
+  --cadeado: #ffffff;
+  --entrada-fundo: #000000;
+  --entrada-borda: #ffffff;
+  --entrada-icone: #ffffff;
+  --entrada-origem-fundo: #000000;
+  --entrada-origem-borda: #ffffff;
+  --formiga: #ff3030;
+  --formiga-borda: #000000;
+  --formiga-ataque-borda: #ffffff;
+  --erro: #ff6b6b;
+  color-scheme: dark;
+}

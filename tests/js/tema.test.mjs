@@ -18,7 +18,7 @@ test("valor salvo desconhecido ou herdado do protótipo é ignorado", () => {
 });
 
 test("todo tema tem bloco no CSS e amostra no HTML", () => {
-  const css = readFileSync(new URL("../../src/honeyant/painel/static/painel.css", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../../src/honeyant/painel/static/temas.css", import.meta.url), "utf8");
   const html = readFileSync(new URL("../../src/honeyant/painel/static/index.html", import.meta.url), "utf8");
   for (const tema of Object.keys(TEMAS)) {
     assert.ok(css.includes(`:root[data-tema="${tema}"]`), `CSS sem o tema ${tema}`);

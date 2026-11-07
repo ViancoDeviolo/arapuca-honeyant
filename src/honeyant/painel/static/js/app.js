@@ -107,13 +107,16 @@ function mostrarComparativo(rotas, rotulos) {
 }
 
 async function iniciar() {
-  const [casaInsegura, rotas, layout, resumo, replays] = await Promise.all([
+  const [casaInsegura, rotas, layout, resumo, replays, sessao] = await Promise.all([
     buscar("/api/v1/casa?perfil=inseguro"),
     buscar("/api/v1/rotas"),
     buscar("/static/layout.json"),
     buscar("/api/v1/resumo"),
     buscar("/api/v1/replay"),
+    buscar("/api/v1/sessao"),
   ]);
+  // Com login ligado, o botão Sair (formulário POST /logout, sem JS) aparece no topo.
+  $("form-sair").hidden = !sessao.login;
   const svg = $("formigueiro");
   let perfil = "inseguro";
   let casa = casaInsegura;

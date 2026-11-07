@@ -14,6 +14,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
+from honeyant.apps.painel_login import encaixe_do_ambiente
 from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
 from honeyant.core.evidencia import EvidenciaDeRede
 from honeyant.core.resumo import ResumoDeAmeaca
@@ -169,7 +170,10 @@ def main() -> None:
     import uvicorn  # só o modo local precisa do servidor web
 
     config = ConfigLocal.de_ambiente(os.environ)
-    uvicorn.run(montar(config), host=config.host, port=config.porta)
+    # Com HONEYANT_PAINEL_SENHA_HASH, o login do Gustavo protege a página e a API.
+    # Um hash inválido levanta ValueError aqui e o painel não sobe.
+    app = montar(config, encaixe=encaixe_do_ambiente(os.environ))
+    uvicorn.run(app, host=config.host, port=config.porta)
 
 
 if __name__ == "__main__":
