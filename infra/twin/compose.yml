@@ -1,0 +1,30 @@
+# Casa simulada (twin). Não suba direto: use `uv run honeyant-twin subir`, que escolhe o
+# perfil, junta os dispositivos gerados pela planta e lê o .env de infra/twin/gerado/.
+# Nenhuma porta é publicada no host: o tráfego fica dentro das redes Docker.
+name: honeyant-twin
+
+services:
+  broker:
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb
+    volumes:
+      # Só a config do Mosquitto (o .env com as senhas fica fora do container).
+      - ./gerado/${PERFIL:?rode honeyant-twin preparar}/mosquitto:/mosquitto/config:ro
+    networks: [casa, camera_isolada]
+
+  captura:
+    # Mesmo tcpdump do teste de captura: compartilha a interface do broker e vê tudo
+    # que entra e sai dele, das duas redes. Só sobe com o perfil "captura".
+    image: nicolaka/netshoot@sha256:b09d9b21381f47a79b3cbcb30da25266dc17186ea00ae65e99fdc51396f48e70
+    network_mode: "service:broker"
+    cap_add: [NET_RAW, NET_ADMIN]
+    command: tcpdump -i any -U -w /capturas/${PERFIL}.pcap port 1883 or port 8883
+    volumes:
+      - ./capturas:/capturas
+    depends_on: [broker]
+    profiles: [captura]
+
+networks:
+  casa:
+  # Rede só da câmera no perfil seguro: sem saída para fora e sem os outros dispositivos.
+  camera_isolada:
+    internal: true
