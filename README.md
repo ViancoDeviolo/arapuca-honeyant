@@ -126,7 +126,7 @@ contexto, componentes, sequência da demo e implantação em
 ### Registro das janelas de saída da EC2
 
 A saída fica bloqueada o tempo todo e só é aberta (HTTP/HTTPS) durante instalações e
-deploys. As quatro janelas abertas até agora (14, 5, 47 e 1 minuto), com data, hora e motivo,
+deploys. As cinco janelas abertas até agora (14, 5, 47, 1 e 2 minutos), com data, hora e motivo,
 tiradas do CloudTrail, estão em
 [`infra/aws/DEPLOY.md`, seção 4.1](infra/aws/DEPLOY.md#41-registro-das-janelas-de-saída-da-ec2).
 
