@@ -6,6 +6,7 @@
   <title>HoneyAnt · Formigueiro</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/painel.css">
+  <script type="module" src="/static/js/tema.js"></script>
   <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
@@ -17,6 +18,15 @@
     <div class="estado">
       <p id="selo" class="selo selo-vulneravel">Vulnerável</p>
       <p id="atualizado" class="atualizado">Carregando dados da isca…</p>
+      <fieldset class="temas">
+        <legend>Tema</legend>
+        <input type="radio" name="tema" id="tema-noite" value="noite" checked><label for="tema-noite" class="amostra-tema tema-noite" title="Noite"><span class="so-leitor">Noite</span></label>
+        <input type="radio" name="tema" id="tema-papel" value="papel"><label for="tema-papel" class="amostra-tema tema-papel" title="Papel"><span class="so-leitor">Papel</span></label>
+        <input type="radio" name="tema" id="tema-terra" value="terra"><label for="tema-terra" class="amostra-tema tema-terra" title="Terra"><span class="so-leitor">Terra</span></label>
+        <input type="radio" name="tema" id="tema-radar" value="radar"><label for="tema-radar" class="amostra-tema tema-radar" title="Radar"><span class="so-leitor">Radar</span></label>
+        <input type="radio" name="tema" id="tema-contraste" value="contraste"><label for="tema-contraste" class="amostra-tema tema-contraste" title="Alto contraste"><span class="so-leitor">Alto contraste</span></label>
+        <span id="nome-tema" class="nome-tema" aria-hidden="true">Noite</span>
+      </fieldset>
     </div>
   </header>
 
