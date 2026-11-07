@@ -102,3 +102,14 @@ def test_recursos_em_desenvolvimento_aponta_para_docs_demo():
 def test_recursos_empacotado_usa_meipass(monkeypatch, tmp_path):
     monkeypatch.setattr(aplicativo.sys, "_MEIPASS", str(tmp_path), raising=False)
     assert recursos() == tmp_path
+
+
+def test_abre_o_navegador_sozinho_salvo_com_honeyant_sem_navegador():
+    abertos = []
+    aplicativo.abrir_navegador("http://127.0.0.1:8765/", env={}, abrir=abertos.append, espera_s=0)
+    assert abertos == ["http://127.0.0.1:8765/"]
+    abertos.clear()
+    aplicativo.abrir_navegador(
+        "http://127.0.0.1:8765/", env={"HONEYANT_SEM_NAVEGADOR": "1"}, abrir=abertos.append
+    )
+    assert abertos == []

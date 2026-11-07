@@ -16,7 +16,7 @@ import socket
 import sys
 import threading
 import webbrowser
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 PORTA_INICIAL = 8765
@@ -75,6 +75,22 @@ def ler_chave(config: Path, perguntar: Callable[[str], str] = input) -> str | No
     return chave
 
 
+def abrir_navegador(
+    endereco: str,
+    env: Mapping[str, str] = os.environ,
+    abrir: Callable[[str], object] = webbrowser.open,
+    espera_s: float = 1.0,
+) -> None:
+    """Abre o navegador sozinho, depois que o servidor sobe. `HONEYANT_SEM_NAVEGADOR=1`
+    desliga (testes de fumaça do .exe)."""
+    if env.get("HONEYANT_SEM_NAVEGADOR"):
+        return
+    if espera_s <= 0:
+        abrir(endereco)
+    else:
+        threading.Timer(espera_s, abrir, args=(endereco,)).start()
+
+
 def _ler_url(arquivo: Path) -> str | None:
     try:
         url = json.loads(arquivo.read_text(encoding="utf-8")).get("url", "")
@@ -115,7 +131,7 @@ def main() -> int:
     )
     app = montar(ConfigLocal(demo, "127.0.0.1", porta), fonte_resumo=fonte_resumo)
     endereco = f"http://127.0.0.1:{porta}/"
-    threading.Timer(1.0, webbrowser.open, args=(endereco,)).start()
+    abrir_navegador(endereco)
     print(f"Painel em {endereco} (abrindo o navegador).")
     print("Feche esta janela para sair.")
     uvicorn.Server(uvicorn.Config(app, log_level="warning")).run(sockets=[sock])

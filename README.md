@@ -56,6 +56,32 @@ uv run honeyant-sensor docs/capturas/depois.pcap   # nenhum MQTT em texto puro
 No PowerShell os comandos são os mesmos. O passo a passo das capturas, com o filtro do
 Wireshark, está em [`docs/capturas/LEIAME.md`](docs/capturas/LEIAME.md).
 
+### Aplicativo ao vivo (Windows)
+
+Para a equipe e a banca: um `HoneyAnt.exe` que abre o painel com os **ataques da isca
+chegando ao vivo** ([ADR 0011](docs/adr/0011-empacotamento-pyinstaller.md)).
+
+1. Baixe o `HoneyAnt.exe` pelo link que o Lucas mandar e deixe na área de trabalho.
+2. Dois cliques. Se aparecer **"O Windows protegeu o computador"** (o app não tem assinatura
+   de código): **Mais informações → Executar assim mesmo**.
+3. Na primeira vez, cole a **chave de acesso** que o Lucas mandou e tecle Enter (ou só Enter
+   para usar o resumo guardado). Ela fica em `%APPDATA%\HoneyAnt\config.json`.
+4. O navegador abre sozinho no painel (`http://127.0.0.1:8765`). Para sair, feche a janela
+   preta do app.
+
+O cabeçalho mostra de onde vêm os dados: **"Ao vivo · atualizado às HH:MM"** (a sua rede
+alcança a isca); **"Resumo de <data>, offline"** (sem acesso: o último resumo guardado); ou
+o resumo que veio no app. A porta 443 da isca só aceita IPs cadastrados: em outra rede, o app
+fica offline sem travar. Chave errada: "chave de acesso inválida" e o app para de tentar.
+
+**Plano B** (se o Defender bloquear o `.exe`): pelo código-fonte, `uv run honeyant-local`
+(painel completo, sem o ao vivo).
+
+**Para gerar o `.exe`** (Lucas): `uv run honeyant-certificados --ip <ip-elastico>`, copiar
+`infra/app/app-local.exemplo.json` para `infra/app/app-local.json` com o IP e rodar
+`powershell -ExecutionPolicy Bypass -File infra/app/construir.ps1`. O resumo-api da EC2 está
+em `infra/aws/DEPLOY.md`, seção 7.2.
+
 ### Login do painel
 
 ```bash
@@ -144,11 +170,16 @@ Critério de revisão: quem consome revisa quem produz.
 
 ## Dívidas técnicas conhecidas
 
-- **Modo nuvem do painel:** não existe. O painel roda no notebook (127.0.0.1) e o resumo
-  chega por exportação + `scp` ([ADR 0002](docs/adr/0002-topologia-isca-na-ec2-casa-no-notebook.md)).
-  Quando existir, ele deve **recusar subir sem `HONEYANT_PAINEL_SENHA_HASH`**.
-- **Intel ao vivo:** as formigas de ataque saem num ritmo fixo, sorteadas na proporção do
-  resumo congelado; não há uma por ataque novo.
+- **Modo nuvem do painel:** não existe. Na EC2 há só o resumo-api (agregado, chave
+  obrigatória); o painel roda em 127.0.0.1 no notebook ou no app
+  ([ADR 0002](docs/adr/0002-topologia-isca-na-ec2-casa-no-notebook.md)). Se um painel for para a
+  nuvem, ele deve **recusar subir sem `HONEYANT_PAINEL_SENHA_HASH`**.
+- **Ao vivo só no app:** o `honeyant-local` usa o resumo congelado (formigas num ritmo fixo);
+  o ao vivo, com uma formiga por ataque novo, é o `HoneyAnt.exe` com o resumo-api.
+- **Chave de acesso do app em texto** em `%APPDATA%\HoneyAnt\config.json`; no futuro,
+  proteger com DPAPI.
+- **App sem assinatura de código:** SmartScreen avisa; o Defender pode dar falso positivo
+  (plano B: `uv run honeyant-local`).
 - **Sessões e bloqueios do login em memória:** reiniciar o painel derruba as sessões.
 - **Dispositivos do twin** reconectam a cada publicação; o sensor não remonta fluxos TCP
   ([ADR 0010](docs/adr/0010-twin-e-sensor-sem-dependencias-novas.md)).
