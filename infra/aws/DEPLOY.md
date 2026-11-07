@@ -96,6 +96,30 @@ O mesmo teste também passou no Docker Desktop do notebook, em dois cenários:
 
 **Cuidado para o painel:** um leitor de longa duração que esteja com o `-shm` aberto *enquanto a isca liga* não foi testado. Ao integrar o painel, repita este teste reiniciando a isca com o painel no ar.
 
+## 7.1 Exportar o resumo real
+
+O painel e o twin usam o `docs/demo/resumo-real-<AAAA-MM-DD>.json` mais recente (a senha
+da câmera no perfil inseguro é a mais tentada dele). O resumo **não tem IP**: só contagens,
+as credenciais mais tentadas e a intenção.
+
+Na instância, com o código atualizado (`git fetch && git checkout <branch>`) e a janela de
+saída aberta **só durante o build** (seção 4):
+
+```bash
+docker compose -f infra/compose.cloud.yml build isca
+docker compose -f infra/compose.cloud.yml -f infra/compose.verificar-ro.yml \
+  run --rm -T --entrypoint honeyant-exportar-resumo verificar-ro > resumo-real.json
+```
+
+No notebook:
+
+```bash
+scp -i <chave>.pem ubuntu@<ip-da-ec2>:~/arapuca-honeyant/resumo-real.json \
+  docs/demo/resumo-real-$(date +%F).json
+uv run pytest tests/e2e/test_resumo_real.py   # se a rota mudar, pare e avise antes de calibrar
+uv run honeyant-gravar-replay                 # o resumo em uso mudou
+```
+
 ## 8. Acompanhamento e encerramento
 
 - No dia seguinte ao deploy, em **Billing → Cost Explorer**, confirmar que o gasto diário está dentro do previsto (R$ 20–50 até a apresentação), incluindo o IPv4 público.
