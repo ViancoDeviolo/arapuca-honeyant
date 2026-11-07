@@ -134,11 +134,11 @@ tiradas do CloudTrail, estão em
 
 | Integrante | Responsabilidade |
 |---|---|
-| Lucas | `core` (contratos), `arapuca`, `apps/`, CI, deploy na AWS; implementação final de `intel`, `sensor`, captura e mitigação |
-| Rafael | `intel` e `sensor` (desenho) |
-| Kawe | `twin` (planta da casa) |
-| Kauã | `pathfinder` (fuzzy, ACO, Dijkstra, replay) |
-| Gustavo | `painel` (login) |
+| Lucas | `core` (contratos), `arapuca`, `pathfinder` (fuzzy, ACO, Dijkstra), `painel` e formigueiro, twin (configuração, mitigação e capturas), `apps/`, CI, deploy na AWS e documentação; implementação final de `intel` e `sensor` |
+| Rafael | `intel` e `sensor`; periféricos da apresentação |
+| Kawe | `twin`: planta da casa (`twin/planta.py`); revisão do PR #20 |
+| Kauã | `pathfinder`: replay determinístico (`adapters/replay.py`) e ADRs 0005 e 0006 |
+| Gustavo | `painel`: login (hash scrypt, sessão, limite de tentativas); revisão do PR #19 |
 
 Critério de revisão: quem consome revisa quem produz.
 
