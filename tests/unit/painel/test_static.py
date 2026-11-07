@@ -69,6 +69,8 @@ def test_rotulo_com_html_sai_como_json_intacto():
         def snapshots(self, semente):
             return []
 
-    r = TestClient(criar_app(perfil, SemSnapshots())).get("/api/v1/perfil")
+    r = TestClient(criar_app(perfil, SemSnapshots()), base_url="http://127.0.0.1").get(
+        "/api/v1/perfil"
+    )
     assert r.headers["content-type"].startswith("application/json")
     assert r.json()["nos"][1]["rotulo"] == XSS

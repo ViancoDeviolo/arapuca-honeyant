@@ -41,7 +41,7 @@ async def _sem_espera(_segundos: float) -> None:
 
 def _cliente(fonte, **extra) -> TestClient:
     extra.setdefault("dormir", _sem_espera)
-    return TestClient(criar_app(_perfil(), fonte, **extra))
+    return TestClient(criar_app(_perfil(), fonte, **extra), base_url="http://127.0.0.1")
 
 
 def eventos_sse(texto: str) -> list[tuple[str, str]]:

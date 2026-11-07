@@ -18,12 +18,14 @@ from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
 from honeyant.core.evidencia import EvidenciaDeRede
 from honeyant.core.resumo import ResumoDeAmeaca
 from honeyant.core.rota import Snapshot
-from honeyant.painel.app import criar_app
+from honeyant.painel.app import Encaixe, criar_app
 from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.fuzzy import ModeloDeRisco
 from honeyant.pathfinder.prever import ColetorDeSnapshots, prever_rota
 
 HOSTS_LOCAIS = frozenset({"127.0.0.1", "localhost", "::1"})
+# Cabeçalho Host aceito pelo TrustedHost: o Starlette mantém os colchetes do IPv6.
+HOSTS_DO_CABECALHO = ("127.0.0.1", "localhost", "[::1]")
 
 
 @dataclass(frozen=True)
@@ -76,8 +78,12 @@ def _ler_json(caminho: Path):
 
 
 def montar(
-    config: ConfigLocal, intervalo_base: float = 0.6, intervalo_minimo: float = 0.15
+    config: ConfigLocal,
+    intervalo_base: float = 0.6,
+    intervalo_minimo: float = 0.15,
+    encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
 ) -> FastAPI:
+    """Monta o painel. O login (PR do Gustavo) chega pelo `encaixe` (spec, seção 3.5)."""
     tipo = config.perfil.value
     perfil = PerfilDaCasa.model_validate(_ler_json(config.demo_dir / f"perfil-{tipo}.json"))
     evidencias = [
@@ -87,7 +93,12 @@ def montar(
     resumo = ResumoDeAmeaca.model_validate(_ler_json(config.demo_dir / "resumo-congelado.json"))
     fonte = FonteDasFixtures(perfil, evidencias, resumo)
     return criar_app(
-        perfil, fonte, intervalo_base=intervalo_base, intervalo_minimo=intervalo_minimo
+        perfil,
+        fonte,
+        intervalo_base=intervalo_base,
+        intervalo_minimo=intervalo_minimo,
+        encaixe=encaixe,
+        hosts_permitidos=HOSTS_DO_CABECALHO,
     )
 
 
