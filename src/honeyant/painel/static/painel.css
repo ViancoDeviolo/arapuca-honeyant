@@ -1,4 +1,4 @@
-/* Painel HoneyAnt: tema escuro e sóbrio; o único ponto ousado é o corte do solo. */
+/* Painel HoneyAnt: tema escuro e sóbrio; o único ponto ousado é a rede de túneis. */
 
 :root {
   --fundo: #191b1f;
@@ -11,7 +11,10 @@
   --ambar-escuro: #3a2a0e;
   --violeta: #a48cf2;
   --verde-azulado: #4fb3a3;
-  --terra-clara: #a68a6d;
+  --fundo-cena: #14161a;
+  --tunel: #6b7685;
+  --tunel-fundo: #22262d;
+  --formiga: #ff3b30;
   --raio: 10px;
   --raio-pequeno: 6px;
   color-scheme: dark;
@@ -143,62 +146,72 @@ h1, h2, p { margin: 0; }
   border: 1px solid var(--linha);
   border-radius: var(--raio);
   overflow: hidden;
-  perspective: 1400px;
-  --inclinar-x: 0deg;
-  --inclinar-y: 0deg;
 }
-/* O solo é desenhado além do viewBox: com a altura limitada, as laterais continuam a cena. */
-.corte { overflow: hidden; background: #2f2620; }
+/* Fundo liso da rede; o SVG desenha além do viewBox, então as laterais continuam a cena. */
+.quadro { overflow: hidden; background: var(--fundo-cena); }
 #formigueiro {
   display: block;
-  overflow: visible;
   margin-inline: auto;
+  overflow: visible;
   width: 100%;
   height: auto;
-  /* Cabe com a legenda em 1366×768: cabeçalho + controles + legenda ≈ 240 px. */
-  max-height: calc(100vh - 250px);
+  /* Cabe com a legenda em 1366×768: cabeçalho + controles + legenda ≈ 250 px. */
+  max-height: calc(100vh - 260px);
   min-height: 320px;
-  transform: rotateX(var(--inclinar-x)) rotateY(var(--inclinar-y));
-  transition: transform 0.3s ease-out;
 }
 
-/* Solo */
-.linha-do-solo { fill: none; stroke: #9a8064; stroke-width: 2.5; }
+/* Rede */
+.borda-externa { stroke: #3a414c; stroke-width: 2; }
+.tunel-fundo {
+  fill: none;
+  stroke: var(--tunel-fundo);
+  stroke-width: 3;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+}
 
-/* Túneis */
-.tunel-corpo,
+/* Túneis reais: cantos em ângulo reto */
+.tunel-base,
 .tunel-miolo {
   fill: none;
-  stroke-linecap: round;
+  stroke-linejoin: miter;
+  stroke-linecap: butt;
+}
+.tunel-base { stroke: #0c0e11; stroke-width: 10px; transition: stroke-width 0.35s ease-out; }
+.tunel-miolo {
+  stroke: var(--tunel);
+  stroke-width: 4px;
+  opacity: 0.45;
   transition: stroke-width 0.35s ease-out, opacity 0.35s ease-out, stroke 0.35s;
 }
-.tunel-corpo { stroke: #17110d; stroke-width: 11px; }
-.tunel-miolo { stroke: var(--terra-clara); stroke-width: 4px; opacity: 0.3; }
-.rota .tunel-miolo { stroke: var(--ambar); opacity: 1 !important; filter: url(#f-brilho); }
-.rota .tunel-corpo { stroke: #2b1c06; }
-.bloqueado .tunel-miolo {
-  stroke: #7d766e;
-  stroke-dasharray: 7 9;
-  opacity: 0.7 !important;
-  stroke-width: 4px !important;
+.rota .tunel-miolo {
+  stroke: var(--ambar);
+  stroke-width: 22px !important;
+  opacity: 1 !important;
+  filter: url(#f-brilho);
 }
-.bloqueado .tunel-corpo { stroke-width: 11px !important; }
-.cadeado { display: none; color: #ddd6cb; }
+.bloqueado .tunel-miolo {
+  stroke: #9aa1ab;
+  stroke-dasharray: 8 8;
+  stroke-width: 4px !important;
+  opacity: 0.8 !important;
+}
+.cadeado { display: none; color: #e4e7eb; }
 .bloqueado .cadeado { display: inline; }
-.chevron { fill: none; stroke: #2b1c06; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.seta { fill: none; stroke: #2b1c06; stroke-width: 2.8; stroke-linecap: square; stroke-linejoin: miter; }
 
-/* Câmaras */
-.camara-borda { fill: none; stroke: rgba(255, 228, 196, 0.28); stroke-width: 2; stroke-linecap: round; }
-.camara-icone { color: #d8cdbd; }
-.camara-nome { fill: var(--texto); font-size: 14px; font-weight: 600; }
-.camara-alvo .camara-anel { fill: none; stroke: var(--ambar); stroke-width: 2; }
-.camara-alvo .camara-cavidade { stroke: var(--ambar); stroke-width: 1.5; }
-.camara-alvo .camara-icone { color: var(--ambar); }
-.camara-origem .camara-cavidade { stroke: #6f7d97; stroke-width: 1.5; }
+/* Entradas */
+.entrada-forma { fill: #1d2127; stroke: #5d6572; stroke-width: 2; }
+.entrada-icone { color: #d6dae0; }
+.entrada-nome { fill: var(--texto); font-size: 14px; font-weight: 600; }
+.entrada-alvo .entrada-forma { stroke: var(--ambar); stroke-width: 2.5; }
+.entrada-alvo .entrada-anel { fill: none; stroke: var(--ambar); stroke-width: 1.5; }
+.entrada-alvo .entrada-icone { color: var(--ambar); }
+.entrada-origem .entrada-forma { fill: #222833; stroke: #7d8899; }
 
-/* Formigas */
-.formiga-aco { fill: #ecdfc6; }
-.formiga-ataque { fill: var(--violeta); stroke: #f4efff; stroke-width: 1; }
+/* Formigas: quadrados vermelhos */
+.formiga-aco { fill: var(--formiga); stroke: #2a0606; stroke-width: 1; }
+.formiga-ataque { fill: var(--formiga); stroke: #ffe8e5; stroke-width: 2; }
 
 /* Legenda */
 .legenda { padding: 10px 14px 12px; border-top: 1px solid var(--linha); }
@@ -214,11 +227,12 @@ h1, h2, p { margin: 0; }
 }
 .legenda li { display: flex; align-items: center; gap: 8px; }
 .amostra { width: 40px; height: 16px; flex: none; }
-.amostra-tunel { fill: none; stroke: var(--terra-clara); stroke-width: 5; stroke-linecap: round; }
-.amostra-rota { fill: none; stroke: var(--ambar); stroke-width: 5; stroke-linecap: round; }
-.amostra-chevron { fill: none; stroke: #2b1c06; stroke-width: 2; }
-.amostra-bloqueado { fill: none; stroke: #7d766e; stroke-width: 4; stroke-dasharray: 5 5; }
-.amostra-cadeado { color: #ddd6cb; }
+.amostra-tunel { fill: none; stroke: var(--tunel); stroke-width: 6; }
+.amostra-rota { fill: none; stroke: var(--ambar); stroke-width: 8; }
+.amostra-seta { fill: none; stroke: #2b1c06; stroke-width: 2; }
+.amostra-bloqueado { fill: none; stroke: #9aa1ab; stroke-width: 3; stroke-dasharray: 5 5; }
+.amostra-cadeado { color: #e4e7eb; }
+.amostra-fundo { fill: none; stroke: #4a515c; stroke-width: 2; }
 
 /* Lateral */
 .lateral { display: grid; gap: 14px; }
@@ -256,5 +270,4 @@ h1, h2, p { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
-  #formigueiro { transform: none; }
 }

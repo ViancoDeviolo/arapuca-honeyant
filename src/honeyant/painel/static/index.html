@@ -37,77 +37,31 @@
 
   <main class="principal">
     <figure class="cena" id="cena">
-      <div class="corte">
+      <div class="quadro">
       <svg id="formigueiro" viewBox="0 0 1000 640" role="img"
            aria-labelledby="titulo-cena" preserveAspectRatio="xMidYMid meet">
-        <title id="titulo-cena">Corte do solo da casa: câmaras são dispositivos e túneis são caminhos de invasão</title>
+        <title id="titulo-cena">Rede de túneis da casa vista de cima: cada entrada é um dispositivo e cada túnel é um caminho de invasão</title>
         <defs>
-          <linearGradient id="g-ceu" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#1f2736"/>
-            <stop offset="1" stop-color="#34405a"/>
-          </linearGradient>
-          <linearGradient id="g-terra-1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#6a5644"/><stop offset="1" stop-color="#5b4a3b"/>
-          </linearGradient>
-          <linearGradient id="g-terra-2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#4f4034"/><stop offset="1" stop-color="#46392e"/>
-          </linearGradient>
-          <linearGradient id="g-terra-3" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#3d3229"/><stop offset="1" stop-color="#352b23"/>
-          </linearGradient>
-          <linearGradient id="g-terra-4" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#2f2620"/><stop offset="1" stop-color="#241d18"/>
-          </linearGradient>
-          <radialGradient id="g-camara" cx="0.5" cy="0.35" r="0.7">
-            <stop offset="0" stop-color="#2a221c"/>
-            <stop offset="0.75" stop-color="#1c1713"/>
-            <stop offset="1" stop-color="#120e0b"/>
-          </radialGradient>
-          <filter id="f-grao" x="0" y="0" width="100%" height="100%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="ruido"/>
-            <feColorMatrix in="ruido" type="matrix"
-              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.22 0"/>
-            <feComposite in2="SourceGraphic" operator="in"/>
-          </filter>
-          <filter id="f-escavado" x="-20%" y="-20%" width="140%" height="140%">
-            <feComponentTransfer in="SourceAlpha" result="inverso">
-              <feFuncA type="table" tableValues="1 0"/>
-            </feComponentTransfer>
-            <feGaussianBlur in="inverso" stdDeviation="5" result="borrao"/>
-            <feOffset in="borrao" dy="6" result="desloc"/>
-            <feFlood flood-color="#000" flood-opacity="0.75" result="cor"/>
-            <feComposite in="cor" in2="desloc" operator="in" result="sombra"/>
-            <feComposite in="sombra" in2="SourceAlpha" operator="in" result="interna"/>
-            <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="interna"/></feMerge>
-          </filter>
-          <filter id="f-brilho" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="b"/>
+          <filter id="f-brilho" filterUnits="userSpaceOnUse" x="-100" y="-100" width="1200" height="840">
+            <feGaussianBlur stdDeviation="4" result="b"/>
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <g id="solo" class="solo">
-          <rect class="ceu" x="-700" y="0" width="2400" height="78" fill="url(#g-ceu)"/>
-          <rect x="-700" y="78" width="2400" height="142" fill="url(#g-terra-1)"/>
-          <rect x="-700" y="220" width="2400" height="140" fill="url(#g-terra-2)"/>
-          <rect x="-700" y="360" width="2400" height="140" fill="url(#g-terra-3)"/>
-          <rect x="-700" y="500" width="2400" height="140" fill="url(#g-terra-4)"/>
-          <rect x="-700" y="78" width="2400" height="562" fill="#000" filter="url(#f-grao)"/>
-          <path class="linha-do-solo" d="M-700 79 C -400 84, -200 72, 0 78 C 160 72, 320 84, 500 77 S 840 72, 1000 79 S 1400 72, 1700 78"/>
-        </g>
+        <g id="fundo"></g>
         <g id="tuneis"></g>
         <g id="rota-sentido"></g>
         <g id="formigas"></g>
-        <g id="camaras"></g>
+        <g id="entradas"></g>
       </svg>
       </div>
       <figcaption class="legenda">
         <ul>
           <li>
-            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><path class="amostra-tunel" d="M2 8 C 14 2, 26 14, 38 8"/></svg>
-            Túnel: mais largo e claro onde as formigas mais passam
+            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><path class="amostra-tunel" d="M2 8 H38"/></svg>
+            Túnel: mais largo onde as formigas mais passam
           </li>
           <li>
-            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><path class="amostra-rota" d="M2 8 C 14 2, 26 14, 38 8"/><path class="amostra-chevron" d="M17 4 L23 8 L17 12"/></svg>
+            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><path class="amostra-rota" d="M2 8 H38"/><path class="amostra-seta" d="M17 4 L23 8 L17 12"/></svg>
             Rota prevista até a fechadura
           </li>
           <li>
@@ -115,12 +69,16 @@
             Túnel bloqueado
           </li>
           <li>
-            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><g class="formiga formiga-aco" transform="translate(20 8)"><ellipse cx="-6" cy="0" rx="4" ry="3"/><ellipse cx="0" cy="0" rx="2.6" ry="2.2"/><ellipse cx="5" cy="0" rx="3" ry="2.6"/></g></svg>
+            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><rect class="formiga formiga-aco" x="16.5" y="4.5" width="7" height="7"/></svg>
             Formiga do ACO explorando um caminho
           </li>
           <li>
-            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><g class="formiga formiga-ataque" transform="translate(20 8)"><ellipse cx="-6" cy="0" rx="4" ry="3"/><ellipse cx="0" cy="0" rx="2.6" ry="2.2"/><ellipse cx="5" cy="0" rx="3" ry="2.6"/></g></svg>
+            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><rect class="formiga formiga-ataque" x="15.5" y="3.5" width="9" height="9"/></svg>
             Ataque real recebido pela isca
+          </li>
+          <li>
+            <svg class="amostra" viewBox="0 0 40 16" aria-hidden="true"><path class="amostra-fundo" d="M2 12 H20 V4 H38"/></svg>
+            Túneis de fundo (só decoração)
           </li>
         </ul>
       </figcaption>

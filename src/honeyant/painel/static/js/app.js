@@ -69,21 +69,6 @@ function mostrarRota(analise, rotulos) {
   $("anuncio").textContent = `Rota prevista: ${nomes}. ${textoFraco}`.trim();
 }
 
-function ligarInclinacao(cena) {
-  if (reduzido) return;
-  cena.addEventListener("pointermove", (ev) => {
-    const caixa = cena.getBoundingClientRect();
-    const x = (ev.clientX - caixa.left) / caixa.width - 0.5;
-    const y = (ev.clientY - caixa.top) / caixa.height - 0.5;
-    cena.style.setProperty("--inclinar-y", `${(x * 3).toFixed(2)}deg`);
-    cena.style.setProperty("--inclinar-x", `${(-y * 3).toFixed(2)}deg`);
-  });
-  cena.addEventListener("pointerleave", () => {
-    cena.style.setProperty("--inclinar-y", "0deg");
-    cena.style.setProperty("--inclinar-x", "0deg");
-  });
-}
-
 async function iniciar() {
   const perfil = "inseguro";
   const [casa, rotas, layout, resumo] = await Promise.all([
@@ -97,7 +82,6 @@ async function iniciar() {
   const cena = criarCena($("formigueiro"), casa, layout, { reduzido });
   mostrarOrigem(resumo);
   cena.limpar(analise);
-  ligarInclinacao($("cena"));
   $("passos").replaceChildren();
   $("ponto-fraco").textContent = "Clique em Prever invasão para ver a rota.";
 
