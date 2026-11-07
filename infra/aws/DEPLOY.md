@@ -51,6 +51,8 @@ Horários em Brasília (UTC-03:00).
 | Janela 3 fechada | 06/11 19:10:24 | Regras removidas (47 min aberta) |
 | Janela 4 aberta | 07/11 16:52:31 | Build do exportador do resumo real |
 | Janela 4 fechada | 07/11 16:53:49 | Regras removidas; timeout do curl confirmado na EC2 (1 min aberta) |
+| Janela 5 aberta | 07/11 17:30:22 | Redeploy da isca com a correção do fim de linha do Telnet (PR #32) |
+| Janela 5 fechada | 07/11 17:32:06 | Regras removidas; timeout do curl confirmado na EC2 (2 min aberta) |
 
 **Procedimento:** a saída fica bloqueada o tempo todo; é liberada só para HTTP/HTTPS
 durante instalações e deploys, fechada logo depois e conferida com
