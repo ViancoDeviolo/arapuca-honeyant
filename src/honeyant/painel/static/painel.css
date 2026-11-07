@@ -1,6 +1,9 @@
-/* Painel HoneyAnt: tema escuro e sóbrio; o único ponto ousado é o corte do solo. */
+/* Painel HoneyAnt: sóbrio em volta; o único ponto ousado é a rede de túneis.
+   Temas só trocam cores (e a fonte no Radar). "--ambar" é a cor de destaque
+   (rota, alvo, botão principal), mesmo quando o tema não usa âmbar. */
 
-:root {
+:root,
+:root[data-tema="noite"] {
   --fundo: #191b1f;
   --superficie: #23262b;
   --superficie-2: #2c3036;
@@ -9,11 +12,173 @@
   --texto-2: #b3ada3;
   --ambar: #e0a33a;
   --ambar-escuro: #3a2a0e;
+  --destaque-tinta: #1d1405;
+  --destaque-hover: #eab354;
+  --destaque-ativo: #c98d27;
+  --seta: #2b1c06;
   --violeta: #a48cf2;
   --verde-azulado: #4fb3a3;
-  --terra-clara: #a68a6d;
+  --protegida-fundo: #0f2a26;
+  --fundo-cena: #14161a;
+  --borda-externa: #3a414c;
+  --tunel: #6b7685;
+  --tunel-base: #0c0e11;
+  --tunel-fundo: #22262d;
+  --amostra-fundo: #4a515c;
+  --bloqueado: #9aa1ab;
+  --cadeado: #e4e7eb;
+  --entrada-fundo: #1d2127;
+  --entrada-borda: #5d6572;
+  --entrada-icone: #d6dae0;
+  --entrada-origem-fundo: #222833;
+  --entrada-origem-borda: #7d8899;
+  --formiga: #ff3b30;
+  --formiga-borda: #2a0606;
+  --formiga-ataque-borda: #ffe8e5;
+  --fonte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --raio: 10px;
   --raio-pequeno: 6px;
+  color-scheme: dark;
+}
+
+/* Papel: planta impressa, para sala clara ou projetor fraco. */
+:root[data-tema="papel"] {
+  --fundo: #efeae0;
+  --superficie: #faf7f1;
+  --superficie-2: #e8e2d6;
+  --linha: #cfc6b5;
+  --texto: #221f1a;
+  --texto-2: #5a5348;
+  --ambar: #a35f00;
+  --ambar-escuro: #f6e3c2;
+  --destaque-tinta: #fffaf0;
+  --destaque-hover: #b86d05;
+  --destaque-ativo: #8a5000;
+  --seta: #fff4dd;
+  --verde-azulado: #1d7a6c;
+  --protegida-fundo: #d6efe9;
+  --fundo-cena: #f6f2ea;
+  --borda-externa: #c9bfac;
+  --tunel: #8c8475;
+  --tunel-base: #ddd5c6;
+  --tunel-fundo: #e6dfd2;
+  --amostra-fundo: #b9b09f;
+  --bloqueado: #6e675c;
+  --cadeado: #2d2924;
+  --entrada-fundo: #ffffff;
+  --entrada-borda: #9d9586;
+  --entrada-icone: #3a352e;
+  --entrada-origem-fundo: #ece6db;
+  --entrada-origem-borda: #7f7768;
+  --formiga: #d22a1e;
+  --formiga-borda: #5a0c06;
+  --formiga-ataque-borda: #ffffff;
+  color-scheme: light;
+}
+
+/* Terra: o formigueiro de verdade, túneis cavados no barro e rota cor de mel. */
+:root[data-tema="terra"] {
+  --fundo: #24180f;
+  --superficie: #2f2016;
+  --superficie-2: #3b291c;
+  --linha: #553d2b;
+  --texto: #f3e4cc;
+  --texto-2: #c9b293;
+  --ambar: #f4b43a;
+  --ambar-escuro: #4a3110;
+  --destaque-tinta: #2a1a04;
+  --destaque-hover: #f8c45e;
+  --destaque-ativo: #d99a22;
+  --seta: #3a2505;
+  --verde-azulado: #8fc27a;
+  --protegida-fundo: #22301a;
+  --fundo-cena: #1b120b;
+  --borda-externa: #4d3726;
+  --tunel: #a9825c;
+  --tunel-base: #120b06;
+  --tunel-fundo: #33241a;
+  --amostra-fundo: #6b4f39;
+  --bloqueado: #c7ad8d;
+  --cadeado: #f6e9d6;
+  --entrada-fundo: #2b1d13;
+  --entrada-borda: #87674b;
+  --entrada-icone: #ecd9bd;
+  --entrada-origem-fundo: #35261a;
+  --entrada-origem-borda: #a58566;
+  --formiga: #ff4a36;
+  --formiga-borda: #2b0703;
+  --formiga-ataque-borda: #ffe6d6;
+  color-scheme: dark;
+}
+
+/* Radar: monitor de fósforo de sala de segurança, fonte de terminal. */
+:root[data-tema="radar"] {
+  --fundo: #06110b;
+  --superficie: #0b1a12;
+  --superficie-2: #11261a;
+  --linha: #1f4a32;
+  --texto: #c9f8d7;
+  --texto-2: #7fc79c;
+  --ambar: #e6ff5c;
+  --ambar-escuro: #26300a;
+  --destaque-tinta: #0b1402;
+  --destaque-hover: #efff8a;
+  --destaque-ativo: #c9e23a;
+  --seta: #1a2400;
+  --verde-azulado: #49e3c2;
+  --protegida-fundo: #08291f;
+  --fundo-cena: #030a06;
+  --borda-externa: #1b4129;
+  --tunel: #34a063;
+  --tunel-base: #010402;
+  --tunel-fundo: #0c2416;
+  --amostra-fundo: #23593a;
+  --bloqueado: #8fd3a8;
+  --cadeado: #d9ffe5;
+  --entrada-fundo: #071510;
+  --entrada-borda: #2e8a55;
+  --entrada-icone: #b8f5cc;
+  --entrada-origem-fundo: #0c2017;
+  --entrada-origem-borda: #4fbf7e;
+  --formiga: #ff3d6e;
+  --formiga-borda: #2b0310;
+  --formiga-ataque-borda: #ffe1ea;
+  --fonte: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+
+/* Contraste: preto, branco e amarelo, para leitura difícil ou tela lavada. */
+:root[data-tema="contraste"] {
+  --fundo: #000000;
+  --superficie: #000000;
+  --superficie-2: #1a1a1a;
+  --linha: #9a9a9a;
+  --texto: #ffffff;
+  --texto-2: #e6e6e6;
+  --ambar: #ffd400;
+  --ambar-escuro: #000000;
+  --destaque-tinta: #000000;
+  --destaque-hover: #ffe24d;
+  --destaque-ativo: #e6bf00;
+  --seta: #000000;
+  --verde-azulado: #00f0c8;
+  --protegida-fundo: #000000;
+  --fundo-cena: #000000;
+  --borda-externa: #ffffff;
+  --tunel: #d0d0d0;
+  --tunel-base: #000000;
+  --tunel-fundo: #2e2e2e;
+  --amostra-fundo: #8a8a8a;
+  --bloqueado: #ffffff;
+  --cadeado: #ffffff;
+  --entrada-fundo: #000000;
+  --entrada-borda: #ffffff;
+  --entrada-icone: #ffffff;
+  --entrada-origem-fundo: #000000;
+  --entrada-origem-borda: #ffffff;
+  --formiga: #ff3030;
+  --formiga-borda: #000000;
+  --formiga-ataque-borda: #ffffff;
   color-scheme: dark;
 }
 
@@ -24,7 +189,7 @@ html, body { margin: 0; }
 body {
   background: var(--fundo);
   color: var(--texto);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--fonte);
   font-size: 15px;
   line-height: 1.45;
   font-variant-numeric: tabular-nums;
@@ -68,7 +233,7 @@ h1, h2, p { margin: 0; }
   background: currentColor;
 }
 .selo-vulneravel { color: var(--ambar); background: var(--ambar-escuro); }
-.selo-protegida { color: var(--verde-azulado); background: #0f2a26; }
+.selo-protegida { color: var(--verde-azulado); background: var(--protegida-fundo); }
 .selo-protegida::before { border-radius: 2px; }
 
 /* Controles */
@@ -93,10 +258,10 @@ h1, h2, p { margin: 0; }
 }
 .botao:hover:not(:disabled) { border-color: var(--texto-2); }
 .botao:disabled { opacity: 0.45; cursor: not-allowed; }
-.botao-primario { background: var(--ambar); border-color: var(--ambar); color: #1d1405; }
-.botao-primario:hover:not(:disabled) { background: #eab354; border-color: #eab354; }
+.botao-primario { background: var(--ambar); border-color: var(--ambar); color: var(--destaque-tinta); }
+.botao-primario:hover:not(:disabled) { background: var(--destaque-hover); border-color: var(--destaque-hover); }
 .botao:active:not(:disabled) { transform: translateY(1px); }
-.botao-primario:active:not(:disabled) { background: #c98d27; border-color: #c98d27; }
+.botao-primario:active:not(:disabled) { background: var(--destaque-ativo); border-color: var(--destaque-ativo); }
 
 :focus-visible { outline: 3px solid var(--ambar); outline-offset: 2px; }
 
@@ -143,62 +308,72 @@ h1, h2, p { margin: 0; }
   border: 1px solid var(--linha);
   border-radius: var(--raio);
   overflow: hidden;
-  perspective: 1400px;
-  --inclinar-x: 0deg;
-  --inclinar-y: 0deg;
 }
-/* O solo é desenhado além do viewBox: com a altura limitada, as laterais continuam a cena. */
-.corte { overflow: hidden; background: #2f2620; }
+/* Fundo liso da rede; o SVG desenha além do viewBox, então as laterais continuam a cena. */
+.quadro { overflow: hidden; background: var(--fundo-cena); }
 #formigueiro {
   display: block;
-  overflow: visible;
   margin-inline: auto;
+  overflow: visible;
   width: 100%;
   height: auto;
-  /* Cabe com a legenda em 1366×768: cabeçalho + controles + legenda ≈ 240 px. */
-  max-height: calc(100vh - 250px);
+  /* Cabe com a legenda em 1366×768: cabeçalho + controles + legenda ≈ 250 px. */
+  max-height: calc(100vh - 260px);
   min-height: 320px;
-  transform: rotateX(var(--inclinar-x)) rotateY(var(--inclinar-y));
-  transition: transform 0.3s ease-out;
 }
 
-/* Solo */
-.linha-do-solo { fill: none; stroke: #9a8064; stroke-width: 2.5; }
+/* Rede */
+.borda-externa { stroke: var(--borda-externa); stroke-width: 2; }
+.tunel-fundo {
+  fill: none;
+  stroke: var(--tunel-fundo);
+  stroke-width: 3;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+}
 
-/* Túneis */
-.tunel-corpo,
+/* Túneis reais: cantos em ângulo reto */
+.tunel-base,
 .tunel-miolo {
   fill: none;
-  stroke-linecap: round;
+  stroke-linejoin: miter;
+  stroke-linecap: butt;
+}
+.tunel-base { stroke: var(--tunel-base); stroke-width: 10px; transition: stroke-width 0.35s ease-out; }
+.tunel-miolo {
+  stroke: var(--tunel);
+  stroke-width: 4px;
+  opacity: 0.45;
   transition: stroke-width 0.35s ease-out, opacity 0.35s ease-out, stroke 0.35s;
 }
-.tunel-corpo { stroke: #17110d; stroke-width: 11px; }
-.tunel-miolo { stroke: var(--terra-clara); stroke-width: 4px; opacity: 0.3; }
-.rota .tunel-miolo { stroke: var(--ambar); opacity: 1 !important; filter: url(#f-brilho); }
-.rota .tunel-corpo { stroke: #2b1c06; }
-.bloqueado .tunel-miolo {
-  stroke: #7d766e;
-  stroke-dasharray: 7 9;
-  opacity: 0.7 !important;
-  stroke-width: 4px !important;
+.rota .tunel-miolo {
+  stroke: var(--ambar);
+  stroke-width: 22px !important;
+  opacity: 1 !important;
+  filter: url(#f-brilho);
 }
-.bloqueado .tunel-corpo { stroke-width: 11px !important; }
-.cadeado { display: none; color: #ddd6cb; }
+.bloqueado .tunel-miolo {
+  stroke: var(--bloqueado);
+  stroke-dasharray: 8 8;
+  stroke-width: 4px !important;
+  opacity: 0.8 !important;
+}
+.cadeado { display: none; color: var(--cadeado); }
 .bloqueado .cadeado { display: inline; }
-.chevron { fill: none; stroke: #2b1c06; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.seta { fill: none; stroke: var(--seta); stroke-width: 2.8; stroke-linecap: square; stroke-linejoin: miter; }
 
-/* Câmaras */
-.camara-borda { fill: none; stroke: rgba(255, 228, 196, 0.28); stroke-width: 2; stroke-linecap: round; }
-.camara-icone { color: #d8cdbd; }
-.camara-nome { fill: var(--texto); font-size: 14px; font-weight: 600; }
-.camara-alvo .camara-anel { fill: none; stroke: var(--ambar); stroke-width: 2; }
-.camara-alvo .camara-cavidade { stroke: var(--ambar); stroke-width: 1.5; }
-.camara-alvo .camara-icone { color: var(--ambar); }
-.camara-origem .camara-cavidade { stroke: #6f7d97; stroke-width: 1.5; }
+/* Entradas */
+.entrada-forma { fill: var(--entrada-fundo); stroke: var(--entrada-borda); stroke-width: 2; }
+.entrada-icone { color: var(--entrada-icone); }
+.entrada-nome { fill: var(--texto); font-size: 14px; font-weight: 600; }
+.entrada-alvo .entrada-forma { stroke: var(--ambar); stroke-width: 2.5; }
+.entrada-alvo .entrada-anel { fill: none; stroke: var(--ambar); stroke-width: 1.5; }
+.entrada-alvo .entrada-icone { color: var(--ambar); }
+.entrada-origem .entrada-forma { fill: var(--entrada-origem-fundo); stroke: var(--entrada-origem-borda); }
 
-/* Formigas */
-.formiga-aco { fill: #ecdfc6; }
-.formiga-ataque { fill: var(--violeta); stroke: #f4efff; stroke-width: 1; }
+/* Formigas: quadrados vermelhos */
+.formiga-aco { fill: var(--formiga); stroke: var(--formiga-borda); stroke-width: 1; }
+.formiga-ataque { fill: var(--formiga); stroke: var(--formiga-ataque-borda); stroke-width: 2; }
 
 /* Legenda */
 .legenda { padding: 10px 14px 12px; border-top: 1px solid var(--linha); }
@@ -214,11 +389,12 @@ h1, h2, p { margin: 0; }
 }
 .legenda li { display: flex; align-items: center; gap: 8px; }
 .amostra { width: 40px; height: 16px; flex: none; }
-.amostra-tunel { fill: none; stroke: var(--terra-clara); stroke-width: 5; stroke-linecap: round; }
-.amostra-rota { fill: none; stroke: var(--ambar); stroke-width: 5; stroke-linecap: round; }
-.amostra-chevron { fill: none; stroke: #2b1c06; stroke-width: 2; }
-.amostra-bloqueado { fill: none; stroke: #7d766e; stroke-width: 4; stroke-dasharray: 5 5; }
-.amostra-cadeado { color: #ddd6cb; }
+.amostra-tunel { fill: none; stroke: var(--tunel); stroke-width: 6; }
+.amostra-rota { fill: none; stroke: var(--ambar); stroke-width: 8; }
+.amostra-seta { fill: none; stroke: var(--seta); stroke-width: 2; }
+.amostra-bloqueado { fill: none; stroke: var(--bloqueado); stroke-width: 3; stroke-dasharray: 5 5; }
+.amostra-cadeado { color: var(--cadeado); }
+.amostra-fundo { fill: none; stroke: var(--amostra-fundo); stroke-width: 2; }
 
 /* Lateral */
 .lateral { display: grid; gap: 14px; }
@@ -233,6 +409,44 @@ h1, h2, p { margin: 0; }
 .passos li::marker { color: var(--texto-2); }
 .passo-fraco { color: var(--ambar); font-weight: 700; }
 .ponto-fraco { color: var(--texto-2); font-size: 14px; }
+
+/* Seletor de tema: amostras redondas, cada uma pintada com as cores do próprio tema. */
+body { transition: background-color 0.25s, color 0.25s; }
+.temas {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.temas legend { float: left; margin-right: 6px; color: var(--texto-2); font-size: 14px; }
+.temas input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.amostra-tema {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--linha);
+  /* metade de cima: fundo do tema; faixa de baixo: túnel; ponto: destaque */
+  background:
+    radial-gradient(circle at 50% 62%, var(--a) 0 3.5px, transparent 4px),
+    linear-gradient(var(--f) 0 55%, var(--t) 55% 100%);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.amostra-tema:hover { transform: scale(1.08); border-color: var(--texto-2); }
+.temas input:checked + .amostra-tema { border-color: var(--ambar); box-shadow: 0 0 0 2px var(--fundo), 0 0 0 4px var(--ambar); }
+.temas input:focus-visible + .amostra-tema { outline: 3px solid var(--ambar); outline-offset: 4px; }
+.tema-noite     { --f: #191b1f; --t: #6b7685; --a: #e0a33a; }
+.tema-papel     { --f: #faf7f1; --t: #8c8475; --a: #a35f00; }
+.tema-terra     { --f: #2f2016; --t: #a9825c; --a: #f4b43a; }
+.tema-radar     { --f: #06110b; --t: #34a063; --a: #e6ff5c; }
+.tema-contraste { --f: #000000; --t: #ffffff; --a: #ffd400; }
+.nome-tema { color: var(--texto-2); font-size: 14px; min-width: 6.5em; }
+
+/* Radar: leve brilho de fósforo nos textos da rede. */
+:root[data-tema="radar"] .entrada-nome { filter: drop-shadow(0 0 3px rgba(73, 227, 140, 0.45)); }
 
 .so-leitor {
   position: absolute;
@@ -256,5 +470,4 @@ h1, h2, p { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
-  #formigueiro { transform: none; }
 }

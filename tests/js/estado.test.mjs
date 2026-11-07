@@ -21,10 +21,11 @@ const analise = {
 };
 
 test("largura proporcional ao tráfego de formigas na iteração", () => {
-  // broker->fechadura: 3 formigas (máximo) → 22; internet->camera: 2 → 4 + 18·2/3 = 16.
-  assert.equal(estadoDoTunel("broker->fechadura", snapshot, analise).largura, 22);
-  assert.equal(estadoDoTunel("internet->camera", snapshot, analise).largura, 16);
-  assert.equal(estadoDoTunel("roteador->broker", snapshot, analise).largura, 10);
+  // broker->fechadura: 3 formigas (máximo) → 18; internet->camera: 2 → 4 + 14·2/3; roteador: 1 → 4 + 14/3.
+  const perto = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
+  assert.equal(estadoDoTunel("broker->fechadura", snapshot, analise).largura, 18);
+  perto(estadoDoTunel("internet->camera", snapshot, analise).largura, 4 + (14 * 2) / 3);
+  perto(estadoDoTunel("roteador->broker", snapshot, analise).largura, 4 + 14 / 3);
   assert.equal(estadoDoTunel("lampada->broker", snapshot, analise).largura, 4);
   assert.equal(estadoDoTunel("roteador->broker", snapshot, analise).brilho, 1 / 3);
 });

@@ -2,7 +2,7 @@
 // Funções puras: testadas com `node --test tests/js/`.
 
 export const LARGURA_MIN = 4;
-export const LARGURA_MAX = 22;
+export const LARGURA_MAX = 18; // túnel normal; a rota prevista é desenhada com 22 px (CSS)
 
 function arestasDaRota(analise) {
   const nos = analise?.rota?.nos ?? [];
