@@ -1,17 +1,19 @@
-"""App web mínima do painel: perfil da casa e formigueiro por SSE (spec, seção 11).
+"""App web do painel: perfil da casa e formigueiro por SSE (spec, seções 3 e 11).
 
-Ainda sem autenticação nem TLS (vêm no plano do painel). Por isso o composition root
-só a sobe em 127.0.0.1.
+O login não mora aqui: chega pelo `Encaixe` (spec, seção 3.5). Sem encaixe, nenhuma rota
+é protegida, e por isso o composition root só sobe o painel em 127.0.0.1.
 """
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, Query, Request, Response
+from fastapi import APIRouter, FastAPI, Query, Request, Response, params
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from honeyant.core.casa import PerfilDaCasa
 from honeyant.painel.ports import FonteDoFormigueiro
@@ -21,8 +23,27 @@ CSP = (
     "default-src 'self'; script-src 'self'; object-src 'none'; "
     "base-uri 'none'; frame-ancestors 'none'"
 )
+HOSTS_PADRAO = ("127.0.0.1", "localhost")
 
 Dormir = Callable[[float], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class Encaixe:
+    """O que o login injeta no painel (spec, seção 3.5).
+
+    - `protecao_api`: dependências de `/api/v1/*` (respondem 401 sem sessão).
+    - `protecao_pagina`: dependências de `/` (redirecionam para `/login` sem sessão).
+    - `routers`: rotas do próprio login, registradas antes e sem proteção.
+
+    `/static/*` fica fora de propósito: `StaticFiles` não aceita dependências, e os
+    estáticos são o mesmo código público do repositório, sem dado nenhum. Os dados só
+    saem pela API, que é protegida.
+    """
+
+    protecao_api: Sequence[params.Depends] = ()
+    protecao_pagina: Sequence[params.Depends] = ()
+    routers: Sequence[APIRouter] = ()
 
 
 def _evento(nome: str, dados: str) -> str:
@@ -35,6 +56,9 @@ def criar_app(
     intervalo_base: float = 0.6,
     intervalo_minimo: float = 0.15,
     dormir: Dormir = asyncio.sleep,
+    *,
+    encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
+    hosts_permitidos: Sequence[str] = HOSTS_PADRAO,
 ) -> FastAPI:
     app = FastAPI(title="HoneyAnt", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -45,11 +69,17 @@ def criar_app(
         resposta.headers["X-Content-Type-Options"] = "nosniff"
         return resposta
 
-    @app.get("/api/v1/perfil")
+    # Adicionado por último, roda primeiro: Host estranho (DNS rebinding) recebe 400.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(hosts_permitidos))
+
+    api = APIRouter(prefix="/api/v1", dependencies=list(encaixe.protecao_api))
+    pagina = APIRouter(dependencies=list(encaixe.protecao_pagina))
+
+    @api.get("/perfil")
     def ver_perfil() -> dict:
         return perfil.model_dump(mode="json")
 
-    @app.get("/api/v1/formigueiro/stream")
+    @api.get("/formigueiro/stream")
     async def formigueiro(
         modo: Literal["prever"] = "prever",
         semente: int = Query(42, ge=0, le=2**31 - 1),
@@ -73,9 +103,13 @@ def criar_app(
             headers={"Cache-Control": "no-cache"},
         )
 
-    @app.get("/", include_in_schema=False)
+    @pagina.get("/", include_in_schema=False)
     def inicio() -> FileResponse:
         return FileResponse(ESTATICOS / "index.html")
 
+    for router in encaixe.routers:
+        app.include_router(router)
+    app.include_router(api)
+    app.include_router(pagina)
     app.mount("/static", StaticFiles(directory=ESTATICOS), name="static")
     return app

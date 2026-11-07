@@ -90,11 +90,13 @@ class FonteDoResumo(Protocol):
 
 ### 3.5 Ponto de encaixe do login (Gustavo)
 
-- **Fábrica:** `criar_app(..., protecao: Sequence[Depends] = ())` recebe todas as dependências por parâmetro.
-- **Routers:** todas as rotas ficam em dois `APIRouter`, o `api` (`/api/v1/*`) e o `pagina` (`/` e `/static/*`). Os dois são registrados com `dependencies=list(protecao)`, então o login protege tudo de uma vez.
-- **Rotas do próprio login:** o PR do Gustavo inclui o router dele pela mesma fábrica, sem a proteção. Por exemplo, um parâmetro `routers_extras: Sequence[APIRouter] = ()` registrado antes dos protegidos.
+- **Fábrica:** `criar_app(..., encaixe: Encaixe = Encaixe())`. O `Encaixe` tem `protecao_api`, `protecao_pagina` e `routers`. São duas proteções porque a API responde 401 e a página redireciona (303) para `/login`.
+- **Routers:** as rotas ficam em dois `APIRouter`: o `api` (`/api/v1/*`, com `protecao_api`) e o `pagina` (`/`, com `protecao_pagina`).
+- **Estáticos públicos:** `/static/*` é montado com `StaticFiles`, que não aceita dependências. Ele fica público, porque é o mesmo código que está no GitHub, sem dado nenhum. Os dados só saem pela API, que é protegida.
+- **Rotas do próprio login:** os `routers` do encaixe entram sem proteção, antes dos outros. O PR do Gustavo cria `apps/painel_login.py` com `encaixe_do_ambiente() -> Encaixe` (lê o ambiente e falha na partida se a configuração estiver inválida). Em `apps/local.py`, ele muda uma linha: `montar(config, encaixe=encaixe_do_ambiente())`.
 - **Sem dependência implícita:** nenhum endpoint daqui assume que não há login. O JS trata 401 e 403 com "Sessão expirada. Entre de novo.", sem quebrar a cena. O stream usa o mesmo cookie (o `EventSource` envia cookies da mesma origem).
-- **Teste do encaixe:** uma dependência de proteção falsa que sempre recusa (401) faz **todas** as rotas `/api/v1/*` e a página responderem 401.
+- **Cookie `Secure`:** o navegador aceita cookie `Secure` em `http://127.0.0.1` e `http://localhost`, porque trata os dois como contexto seguro. Isso precisa ser conferido no navegador da demo. O painel não é exposto em HTTP puro na EC2. Se um dia rodar lá, o acesso é por túnel SSH (`ssh -L`), que chega pelo `127.0.0.1` local.
+- **Teste do encaixe:** proteções falsas fazem todas as rotas `/api/v1/*` responderem 401 e a página responder 303 para `/login`. Os `routers` do encaixe continuam abertos.
 
 ### 3.6 Fluxo da mitigação (só no front, visual)
 

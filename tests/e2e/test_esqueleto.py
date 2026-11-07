@@ -16,7 +16,9 @@ DEMO = Path(__file__).parents[2] / "docs" / "demo"
 
 def stream(perfil: str, semente: int = 42) -> list[Snapshot]:
     config = ConfigLocal(perfil=TipoDePerfil(perfil), demo_dir=DEMO, host="127.0.0.1", porta=0)
-    cliente = TestClient(montar(config, intervalo_base=0, intervalo_minimo=0))
+    cliente = TestClient(
+        montar(config, intervalo_base=0, intervalo_minimo=0), base_url="http://127.0.0.1"
+    )
     r = cliente.get("/api/v1/formigueiro/stream", params={"semente": semente})
     assert r.status_code == 200
     snaps = []
@@ -58,3 +60,22 @@ def test_config_recusa_host_fora_do_localhost_enquanto_nao_ha_login(host):
 @pytest.mark.parametrize("host", ["127.0.0.1", "localhost", "::1"])
 def test_config_aceita_loopback(host):
     assert ConfigLocal.de_ambiente({"HONEYANT_HOST": host}).host == host
+
+
+def test_montar_repassa_o_encaixe_do_login():
+    from fastapi import Depends, HTTPException
+
+    from honeyant.painel.app import Encaixe
+
+    def recusa() -> None:
+        raise HTTPException(401)
+
+    config = ConfigLocal(perfil=TipoDePerfil.INSEGURO, demo_dir=DEMO, host="127.0.0.1", porta=0)
+    app = montar(config, encaixe=Encaixe(protecao_api=[Depends(recusa)]))
+    assert TestClient(app, base_url="http://127.0.0.1").get("/api/v1/perfil").status_code == 401
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "localhost", "[::1]"])
+def test_montar_aceita_os_hosts_de_loopback(host):
+    config = ConfigLocal(perfil=TipoDePerfil.INSEGURO, demo_dir=DEMO, host="127.0.0.1", porta=0)
+    assert TestClient(montar(config), base_url=f"http://{host}").get("/").status_code == 200
