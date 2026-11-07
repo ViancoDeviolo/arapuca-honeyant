@@ -217,11 +217,21 @@ def test_depois_pcap_nao_tem_texto_puro(perfil):
     assert detectar(LeitorPcap(CAPTURAS / "depois.pcap"), perfil, {("admin", "admin")}) == []
 
 
+def _demo_sem_resumo_real(tmp_path: Path) -> Path:
+    """Fixtures com o resumo de exemplo (admin/admin no topo), sem o resumo real."""
+    destino = tmp_path / "demo"
+    destino.mkdir()
+    for nome in ("perfil-inseguro.json", "perfil-seguro.json", "resumo-congelado.json"):
+        (destino / nome).write_bytes((DEMO / nome).read_bytes())
+    return destino
+
+
 def test_comando_grava_o_json(tmp_path, capsys):
+    demo = _demo_sem_resumo_real(tmp_path)
     saida = tmp_path / "ev.json"
     assert (
         app_sensor.main(
-            [str(CAPTURAS / "antes.pcap"), "--saida", str(saida), "--demo-dir", str(DEMO)]
+            [str(CAPTURAS / "antes.pcap"), "--saida", str(saida), "--demo-dir", str(demo)]
         )
         == 0
     )

@@ -35,7 +35,8 @@ class EvidenciaDeRede(BaseModel):
     observado_em: datetime
     fonte: Fonte
     texto_puro: bool | None = None
-    credencial_vazada: bool | None = None  # senha usada/aceita está no top 20 da isca
+    # senha usada/aceita é conhecida: top da isca ∪ padrões de fábrica (core/credenciais.py)
+    credencial_vazada: bool | None = None
     autenticacao_exigida: bool | None = None
     acl_bloqueia: bool | None = None
     alcancavel: bool | None = None

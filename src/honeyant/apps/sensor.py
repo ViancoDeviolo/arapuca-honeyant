@@ -4,7 +4,8 @@
     uv run honeyant-sensor docs/capturas/antes.pcap --saida evidencias-sensor.json
 
 Usa o perfil da casa (para saber quais arestas existem) e o mesmo resumo do painel (para
-saber se a senha que passou em claro está entre as mais tentadas na isca).
+saber se a senha que passou em claro é uma credencial conhecida: as completas do resumo
+real ∪ as padrão de fábrica de IoT, em `core/credenciais.py`).
 """
 
 import argparse
@@ -15,6 +16,7 @@ from pathlib import Path
 
 from honeyant.apps.local import FonteDoResumoLocal, _ler_json
 from honeyant.core.casa import PerfilDaCasa
+from honeyant.core.credenciais import credenciais_conhecidas
 from honeyant.sensor.adapters.pcap import FormatoNaoSuportado, LeitorPcap
 from honeyant.sensor.detector import detectar
 
@@ -29,7 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     perfil = PerfilDaCasa.model_validate(_ler_json(args.demo_dir / f"perfil-{args.perfil}.json"))
     resumo = FonteDoResumoLocal(args.demo_dir).resumo().resumo
-    vazadas = {(c.usuario, c.senha) for c in resumo.top_credenciais if c.usuario and c.senha}
+    vazadas = credenciais_conhecidas(resumo)
     try:
         evidencias = detectar(LeitorPcap(args.pcap), perfil, vazadas)
     except (FormatoNaoSuportado, OSError) as erro:

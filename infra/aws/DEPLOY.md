@@ -49,6 +49,8 @@ Horários em Brasília (UTC-03:00).
 | Janela 2 fechada | 05/11 22:30:00 | Regras removidas (5 min aberta) |
 | Janela 3 aberta | 06/11 18:23:15 | Teste do mode=ro no SQLite e atualização do deploy |
 | Janela 3 fechada | 06/11 19:10:24 | Regras removidas (47 min aberta) |
+| Janela 4 aberta | 07/11 16:52:31 | Build do exportador do resumo real |
+| Janela 4 fechada | 07/11 16:53:49 | Regras removidas; timeout do curl confirmado na EC2 (1 min aberta) |
 
 **Procedimento:** a saída fica bloqueada o tempo todo; é liberada só para HTTP/HTTPS
 durante instalações e deploys, fechada logo depois e conferida com
@@ -142,9 +144,15 @@ No notebook:
 ```bash
 scp -i <chave>.pem ubuntu@<ip-da-ec2>:~/arapuca-honeyant/resumo-real.json \
   docs/demo/resumo-real-$(date +%F).json
+grep -cE '([0-9]{1,3}\.){3}[0-9]{1,3}' docs/demo/resumo-real-*.json   # precisa dar 0
 uv run pytest tests/e2e/test_resumo_real.py   # se a rota mudar, pare e avise antes de calibrar
 uv run honeyant-gravar-replay                 # o resumo em uso mudou
 ```
+
+**Nenhum IPv4 no resumo:** o intel troca qualquer IPv4 dentro de usuário e senha por
+`<ipv4>` antes de exportar, e o teste `test_nenhum_ipv4_nos_resumos_versionados` falha se
+algum `docs/demo/resumo-*.json` tiver algo com cara de IPv4. O `grep` acima precisa dar `0`
+em cada arquivo antes do commit.
 
 ## 8. Acompanhamento e encerramento
 

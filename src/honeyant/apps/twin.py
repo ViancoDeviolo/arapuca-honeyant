@@ -7,8 +7,8 @@
 
 `preparar` grava tudo em `infra/twin/gerado/` (fora do git): os dois perfis prontos, para o
 `honeyant-mitigar` trocar de um para o outro sem gerar nada de novo. Os dispositivos saem
-da `planejar_dispositivos` (twin/planta.py) e a credencial vazada da câmera, do mesmo
-resumo que o painel usa (o real, se houver).
+da `planejar_dispositivos` (twin/planta.py). A câmera do perfil inseguro usa a credencial
+padrão de fábrica `admin`/`admin` (`core/credenciais.py`).
 """
 
 import argparse
@@ -20,7 +20,7 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from honeyant.apps.local import FonteDoResumoLocal, _ler_json
+from honeyant.apps.local import _ler_json
 from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
 from honeyant.twin import configuracao as cfg
 from honeyant.twin.planta import planejar_dispositivos
@@ -93,8 +93,7 @@ class ControleDoTwin:
         return self.gerado / tipo.value
 
     def preparar(self) -> None:
-        resumo = FonteDoResumoLocal(self.demo_dir).resumo().resumo
-        vazada = cfg.credencial_vazada(resumo)
+        vazada = cfg.credencial_da_camera()
         for tipo in TipoDePerfil:
             perfil = PerfilDaCasa.model_validate(
                 _ler_json(self.demo_dir / f"perfil-{tipo.value}.json")

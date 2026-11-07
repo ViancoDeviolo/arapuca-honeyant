@@ -1,8 +1,9 @@
 """Detector: do tráfego para `EvidenciaDeRede` (vulnerabilidade identificada, não declarada).
 
 Regra: um `CONNECT` MQTT legível numa porta de MQTT sem TLS (1883) é **texto puro** na
-aresta entre aquele dispositivo e o broker. Se a senha que passou em claro estiver entre
-as mais tentadas na isca, a credencial também está **vazada**.
+aresta entre aquele dispositivo e o broker. Se a senha que passou em claro for uma
+credencial conhecida (`core/credenciais.py`: as completas do resumo real ∪ as padrão de
+fábrica de IoT), a credencial também está **vazada**.
 
 O dispositivo vem do id do cliente MQTT (`camera`, `camera-comando`…), que no twin é o id
 do nó. Ids que não batem com nenhum nó do perfil são ignorados.

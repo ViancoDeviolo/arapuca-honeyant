@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from honeyant.core.eventos import EventoDeAtaque, Servico
 from honeyant.core.resumo import LIMITE_TOP_CREDENCIAIS, CredencialTentada, ResumoDeAmeaca
+from honeyant.intel.anonimizar import mascarar_ipv4
 from honeyant.intel.intencao import classificar
 
 PAIS_DESCONHECIDO = "ZZ"
@@ -30,6 +31,10 @@ def _intencoes(eventos: list[EventoDeAtaque], janela_horas: int) -> Counter:
     return contagem
 
 
+def _mascarar(texto: str | None) -> str | None:
+    return mascarar_ipv4(texto) if texto else texto
+
+
 def agregar(
     eventos: Iterable[EventoDeAtaque],
     acumulado: Mapping[Servico, int],
@@ -39,8 +44,10 @@ def agregar(
     inicio = agora - timedelta(hours=janela_horas)
     na_janela = [e for e in eventos if inicio < e.ts <= agora]
 
+    # Só sessões que mandaram algum texto: usuário ou senha vazios não são credencial.
+    # IPv4 dentro do texto (scanner que ecoa o alvo) vira "<ipv4>" antes de contar.
     credenciais = Counter(
-        (e.usuario, e.senha) for e in na_janela if e.usuario is not None or e.senha is not None
+        (_mascarar(e.usuario), _mascarar(e.senha)) for e in na_janela if e.usuario or e.senha
     )
     # Mais tentadas primeiro; empate por (usuario, senha) crescente, para ser determinístico.
     top = sorted(credenciais.items(), key=lambda par: (-par[1], par[0][0] or "", par[0][1] or ""))

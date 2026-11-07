@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
-from honeyant.core.resumo import ResumoDeAmeaca
+from honeyant.core.credenciais import credenciais_conhecidas
 from honeyant.twin import configuracao as cfg
 from honeyant.twin.planta import planejar_dispositivos
 
@@ -20,12 +20,6 @@ def _perfil(tipo: TipoDePerfil) -> PerfilDaCasa:
     return PerfilDaCasa.model_validate_json((DEMO / f"perfil-{tipo.value}.json").read_text("utf-8"))
 
 
-def _resumo(**troca) -> ResumoDeAmeaca:
-    dados = json.loads((DEMO / "resumo-congelado.json").read_text("utf-8"))
-    dados.update(troca)
-    return ResumoDeAmeaca.model_validate(dados)
-
-
 def _senhas():
     contador = count(1)
     return lambda: f"forte-{next(contador)}"
@@ -36,33 +30,10 @@ def dispositivos():
     return planejar_dispositivos(_perfil(INSEGURO))
 
 
-def test_credencial_vazada_e_a_mais_tentada_do_resumo():
-    assert cfg.credencial_vazada(_resumo()) == cfg.Credencial("admin", "admin")
-
-
-@pytest.mark.parametrize(
-    "hostil",
-    [
-        {"usuario": "root", "senha": "a b"},
-        {"usuario": "root", "senha": "$(reboot)"},
-        {"usuario": "x;y", "senha": "1"},
-        {"usuario": None, "senha": "123456"},
-        {"usuario": "root", "senha": "'; rm -rf /"},
-    ],
-)
-def test_credencial_hostil_da_isca_e_pulada(hostil):
-    resumo = _resumo(
-        top_credenciais=[
-            {**hostil, "tentativas": 9},
-            {"usuario": "root", "senha": "xc3511", "tentativas": 3},
-        ]
-    )
-    assert cfg.credencial_vazada(resumo) == cfg.Credencial("root", "xc3511")
-
-
-def test_sem_credencial_utilizavel_cai_no_padrao():
-    resumo = _resumo(top_credenciais=[{"usuario": "a b", "senha": "c", "tentativas": 1}])
-    assert cfg.credencial_vazada(resumo) == cfg.Credencial("admin", "admin")
+def test_camera_usa_a_credencial_padrao_de_fabrica_conhecida():
+    camera = cfg.credencial_da_camera()
+    assert camera == cfg.Credencial("admin", "admin")
+    assert (camera.usuario, camera.senha) in credenciais_conhecidas()
 
 
 def test_inseguro_camera_com_a_vazada_e_os_outros_previsiveis(dispositivos):
