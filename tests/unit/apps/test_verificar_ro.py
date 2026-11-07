@@ -1,4 +1,7 @@
 import json
+import os
+
+import pytest
 
 from honeyant.apps.verificar_ro import main, relatorio
 from honeyant.arapuca.adapters.sqlite import RepositorioSqlite
@@ -19,6 +22,10 @@ def test_relatorio_do_banco_da_isca(tmp_path, fabrica_evento):
     }
 
 
+@pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="como root, os.access(..., W_OK) é sempre verdadeiro e o teste não tem como passar",
+)
 def test_main_imprime_json_sem_ip_e_sai_com_zero(tmp_path, fabrica_evento, monkeypatch, capsys):
     RepositorioSqlite(tmp_path / "isca.db").salvar(fabrica_evento())
     (tmp_path / "isca.db").chmod(0o444)  # como o usuário 10002 vê o banco da isca
