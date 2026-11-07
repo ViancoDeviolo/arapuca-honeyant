@@ -7,9 +7,10 @@ porque um módulo não importa outro.
 """
 
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 
-from honeyant.core.eventos import Servico
+from honeyant.core.eventos import EventoDeAtaque, Servico
 
 
 class LeitorSqlite:
@@ -31,6 +32,17 @@ class LeitorSqlite:
     def acumulado_por_servico(self) -> dict[Servico, int]:
         linhas = self._con.execute("SELECT servico, total FROM acumulado").fetchall()
         return {Servico(s): t for s, t in linhas}
+
+    def eventos_desde(self, inicio: datetime) -> list[EventoDeAtaque]:
+        """Eventos com `ts >= inicio`, do mais antigo para o mais novo.
+
+        A isca grava `ts` em ISO 8601 UTC, então a comparação de texto respeita a ordem.
+        """
+        linhas = self._con.execute(
+            "SELECT dados FROM eventos WHERE ts >= ? ORDER BY ts",
+            (inicio.astimezone(UTC).isoformat(),),
+        ).fetchall()
+        return [EventoDeAtaque.model_validate_json(d) for (d,) in linhas]
 
     def escrita_bloqueada(self) -> bool:
         """Prova, tentando, que esta conexão não consegue alterar o banco."""
