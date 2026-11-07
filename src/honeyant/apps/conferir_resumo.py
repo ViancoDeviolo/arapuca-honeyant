@@ -31,7 +31,8 @@ def main(argv: Sequence[str] | None = None, chave: str | None = None) -> int:
     args = p.parse_args(argv)
     chave = chave if chave is not None else getpass.getpass("Chave de acesso: ").strip()
     abridor = urllib.request.build_opener(
-        urllib.request.HTTPSHandler(context=contexto_cliente(args.ca))
+        urllib.request.ProxyHandler({}),  # direto, como o app
+        urllib.request.HTTPSHandler(context=contexto_cliente(args.ca)),
     )
     pedido = urllib.request.Request(  # noqa: S310  # só https, URL do próprio projeto
         f"{args.url.rstrip('/')}/api/v1/resumo", headers={"Authorization": f"Bearer {chave}"}

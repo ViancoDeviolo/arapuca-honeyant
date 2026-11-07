@@ -10,6 +10,7 @@ formigas de ataque usam o resumo ao vivo do resumo-api da EC2; sem acesso, o úl
   funciona só com o resumo guardado.
 """
 
+import getpass
 import json
 import os
 import re
@@ -60,7 +61,7 @@ def abrir_socket(inicio: int = PORTA_INICIAL, tentativas: int = TENTATIVAS) -> s
     )
 
 
-def ler_chave(config: Path, perguntar: Callable[[str], str] = input) -> str | None:
+def ler_chave(config: Path, perguntar: Callable[[str], str] = getpass.getpass) -> str | None:
     """A chave salva; sem ela (ou com o arquivo corrompido), pergunta e salva."""
     try:
         chave = json.loads(config.read_text(encoding="utf-8")).get("chave")

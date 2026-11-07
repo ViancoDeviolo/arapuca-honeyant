@@ -76,7 +76,20 @@ fica offline sem travar. Chave errada: "chave de acesso inválida", o app para d
 esquece a chave salva; feche, abra de novo e cole a chave certa.
 
 **Plano B** (se o Defender bloquear o `.exe`): pelo código-fonte, `uv run honeyant-local`
-(painel completo, sem o ao vivo).
+(painel completo, sem o ao vivo). Pelo código-fonte, `uv run honeyant-app` também abre, mas
+fica sempre offline: o endereço da isca (`app.json`) e a CA (`ca.crt`) só existem dentro do
+`.exe`.
+
+**Antes de distribuir um `.exe` novo** (Lucas), no PowerShell:
+
+1. Varredura do Defender:
+   `& "$env:ProgramFiles\Windows Defender\MpCmdRun.exe" -Scan -ScanType 3 -File "$PWD\dist\HoneyAnt.exe"`
+   — esperado: "found no threats". Se acusar algo, não distribua: anote o nome da detecção e
+   use o plano B.
+2. Teste do SmartScreen como os outros vão ver: suba o `.exe` no Drive, baixe de volta (o
+   arquivo baixado ganha a marca "veio da internet") e abra. Deve aparecer "O Windows protegeu
+   o computador" → "Mais informações" → "Executar assim mesmo", e o painel abre.
+3. Com a sua chave e o IP liberado na 443, o cabeçalho tem que mostrar "Ao vivo".
 
 **Para gerar o `.exe`** (Lucas): `uv run honeyant-certificados --ip <ip-elastico>`, copiar
 `infra/app/app-local.exemplo.json` para `infra/app/app-local.json` com o IP e rodar

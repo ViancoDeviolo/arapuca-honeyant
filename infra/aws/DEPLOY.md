@@ -224,10 +224,22 @@ mesmo com tudo certo. Conferido em 07/11 no ensaio local do compose da nuvem: co
 
 Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
 
-**5. Renovação (a cada 90 dias):** no PC, `uv run honeyant-certificados --ip <IP>` (a CA é a
-mesma; nenhum app precisa ser refeito), `scp` da pasta, os mesmos `chown`/`chmod` e
-`docker compose -f infra/compose.cloud.yml restart resumo-api` (o certificado é relido ao
-reiniciar). Não precisa de janela de saída.
+**5. Renovação (a cada 90 dias):** a CA é a mesma, então nenhum app precisa ser refeito e
+não precisa de janela de saída. Os arquivos atuais pertencem ao usuário 10002, por isso a
+cópia vai para uma pasta intermediária e o `install` coloca dono e permissão de uma vez:
+
+```bash
+# No PC:
+uv run honeyant-certificados --ip <IP>
+scp -i <CHAVE> infra/certs-resumo/servidor.crt infra/certs-resumo/servidor.key <USUARIO>@<IP>:/tmp/
+
+# Na instância:
+cd ~/arapuca-honeyant
+sudo install -o 10002 -g 10001 -m 600 /tmp/servidor.key infra/certs-resumo/servidor.key
+sudo install -o 10002 -g 10001 -m 644 /tmp/servidor.crt infra/certs-resumo/servidor.crt
+rm /tmp/servidor.key /tmp/servidor.crt
+docker compose -f infra/compose.cloud.yml restart resumo-api   # o certificado é relido ao reiniciar
+```
 
 **Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env` (passo 3) e
 **recriar** o container, porque o `restart` mantém o ambiente antigo:

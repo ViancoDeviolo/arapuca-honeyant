@@ -117,3 +117,61 @@ def test_linha_do_env_vem_entre_aspas_simples(capsys):
     )
     valor = linha.split("=", 1)[1]
     assert valor.startswith("'scrypt$") and valor.endswith("'")
+
+
+# ---------- menores da revisão final: trava e memória do scrypt ----------
+
+
+def test_erros_simultaneos_nao_se_perdem(monkeypatch):
+    """Sem trava, threads concorrentes sobrescreviam a lista de erros e o bloqueio não
+    acontecia no 5º erro."""
+    import threading
+    import time as _time
+
+    class DictLento(dict):
+        def get(self, *args):
+            valor = super().get(*args)
+            _time.sleep(0.02)  # abre a janela da corrida entre ler e gravar a lista de erros
+            return valor
+
+    controle = ControleDeAcesso(HASH, relogio=lambda: 1000.0)
+    controle._erros = DictLento()
+    monkeypatch.setattr(acesso, "_scrypt", lambda *a: b"x" * 32)  # rápido; a corrida é no estado
+    threads = [
+        threading.Thread(target=controle.verificar, args=(IP, "Bearer errada")) for _ in range(10)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert controle.verificar(IP, f"Bearer {CHAVE}") == "bloqueado"
+
+
+def test_no_maximo_2_scrypt_ao_mesmo_tempo(monkeypatch):
+    """Cada scrypt usa ~16 MiB; o resumo-api tem 128 MiB."""
+    import threading
+    import time as _time
+
+    ativos, maximo, trava = [0], [0], threading.Lock()
+    original = acesso._scrypt
+
+    def scrypt_lento(*args):
+        with trava:
+            ativos[0] += 1
+            maximo[0] = max(maximo[0], ativos[0])
+        _time.sleep(0.05)
+        with trava:
+            ativos[0] -= 1
+        return original(*args)
+
+    monkeypatch.setattr(acesso, "_scrypt", scrypt_lento)
+    controle = ControleDeAcesso(HASH)
+    threads = [
+        threading.Thread(target=controle.verificar, args=(f"10.0.0.{i}", f"Bearer {CHAVE}"))
+        for i in range(6)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert maximo[0] <= acesso.SCRYPT_SIMULTANEOS == 2

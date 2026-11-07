@@ -14,6 +14,12 @@ export function novosAtaques(anterior, atual, maximo = MAXIMO_FORMIGAS_POR_CONSU
   return saida;
 }
 
+// Base para contar ataques novos: só uma resposta ao vivo. Depois de um período offline,
+// a diferença para o cache seria o atraso acumulado, não ataques novos.
+export function acumuladoParaComparar(resposta) {
+  return resposta.origem === "ao_vivo" ? resposta.resumo.acumulado_por_servico : null;
+}
+
 function formatar(iso, fuso, opcoes) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, ...opcoes }).format(new Date(iso));
 }

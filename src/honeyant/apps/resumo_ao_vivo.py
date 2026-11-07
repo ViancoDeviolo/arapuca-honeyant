@@ -66,7 +66,11 @@ class ClienteResumo:
         self._url = f"{url.rstrip('/')}/api/v1/resumo"
         self._chave = chave
         self._timeout = timeout_s
-        self._abridor = urllib.request.build_opener(urllib.request.HTTPSHandler(context=contexto))
+        # ProxyHandler({}): sempre direto. Pelo proxy do sistema, a EC2 veria o IP do proxy,
+        # não o da rede liberada no Security Group.
+        self._abridor = urllib.request.build_opener(
+            urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=contexto)
+        )
 
     def buscar(self) -> ResumoDeAmeaca:
         pedido = urllib.request.Request(  # noqa: S310  # URL do próprio projeto

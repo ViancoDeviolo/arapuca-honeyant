@@ -5,7 +5,7 @@ import { aceitarSnapshot } from "./estado.js";
 import { criarCena } from "./cena.js";
 import { formatarComparativo } from "./comparativo.js";
 import { maiores, nivelDeRisco, ROTULO_NIVEL, sortearServico } from "./risco.js";
-import { novosAtaques, textoDaOrigem } from "./aovivo.js";
+import { acumuladoParaComparar, novosAtaques, textoDaOrigem } from "./aovivo.js";
 
 const $ = (id) => document.getElementById(id);
 const SESSAO_EXPIRADA = "Sessão expirada. Entre de novo.";
@@ -362,7 +362,7 @@ async function iniciar() {
   // entre duas consultas). Fora do ao vivo: ritmo fixo de uma a cada 2 s, sorteada na
   // proporção do resumo. Nada com "reduzir movimento".
   let resumoAtual = resumo;
-  let acumuladoAnterior = resumo.resumo.acumulado_por_servico;
+  let acumuladoAnterior = acumuladoParaComparar(resumo);
 
   function mostrarRitmo() {
     if (reduzido) return;
@@ -399,7 +399,7 @@ async function iniciar() {
         cena.soltarAtaque(servico);
       }
     }
-    acumuladoAnterior = novo.resumo.acumulado_por_servico;
+    acumuladoAnterior = acumuladoParaComparar(novo);
     resumoAtual = novo;
     mostrarOrigem(novo);
     mostrarAtaques(novo);

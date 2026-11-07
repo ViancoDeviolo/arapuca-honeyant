@@ -22,7 +22,8 @@ from honeyant.core.resumo import ResumoDeAmeaca
 from honeyant.intel.acesso import ControleDeAcesso
 
 ROTA = "/api/v1/resumo"
-_FALHAS_DO_BANCO = (sqlite3.Error, FileNotFoundError, OSError)
+# ValueError cobre a linha que não valida no contrato (ValidationError é um ValueError).
+_FALHAS_DO_BANCO = (sqlite3.Error, FileNotFoundError, OSError, ValueError)
 
 
 def contexto_servidor(cert: Path, chave: Path) -> ssl.SSLContext:

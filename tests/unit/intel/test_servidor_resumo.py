@@ -165,3 +165,21 @@ def test_fonte_do_banco_agrega_sem_ip(tmp_path, fabrica_evento):
     assert resumo.gerado_em <= datetime.now(UTC)
     assert not QUALQUER_IPV4.search(resumo.model_dump_json())
     json.loads(resumo.model_dump_json())
+
+
+def test_linha_corrompida_no_banco_da_503(servidor):
+    """Evento que não valida (ValidationError é ValueError) não derruba a conexão."""
+    url, fonte, _ = servidor
+
+    def corrompida():
+        raise ValueError("linha corrompida no banco")
+
+    fonte_original = fonte.__call__
+    fonte.falhar = False
+    type(fonte).__call__ = lambda self: corrompida()
+    try:
+        status, corpo, _ = _get(f"{url}/api/v1/resumo")
+        assert (status, corpo) == (503, b"")
+    finally:
+        type(fonte).__call__ = Fonte.__call__
+    assert fonte_original

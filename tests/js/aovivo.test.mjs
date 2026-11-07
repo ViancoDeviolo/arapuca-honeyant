@@ -47,3 +47,12 @@ test("aviso de chave inválida aparece junto da origem", () => {
   const r = { origem: "offline", atualizado_em: "2026-11-08T15:04:00Z", resumo: resumo(), aviso: "chave de acesso inválida" };
   assert.equal(textoDaOrigem(r, FUSO), "Resumo de 08/11/2026 12:04, offline · chave de acesso inválida");
 });
+
+import { acumuladoParaComparar } from "../../src/honeyant/painel/static/js/aovivo.js";
+
+test("só compara com a consulta anterior se ela também era ao vivo", () => {
+  const acum = { telnet: 5 };
+  assert.deepEqual(acumuladoParaComparar({ origem: "ao_vivo", resumo: { acumulado_por_servico: acum } }), acum);
+  assert.equal(acumuladoParaComparar({ origem: "offline", resumo: { acumulado_por_servico: acum } }), null);
+  assert.equal(acumuladoParaComparar({ origem: "real", resumo: { acumulado_por_servico: acum } }), null);
+});

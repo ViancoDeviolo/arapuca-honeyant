@@ -180,3 +180,25 @@ def test_cliente_silencioso_nao_trava_o_servidor(ca, tmp_path):
         silencioso.close()
         srv.shutdown()
         srv.server_close()
+
+
+def test_cliente_ignora_o_proxy_do_sistema(ca, tmp_path, monkeypatch):
+    """Na rede da faculdade, o proxy do sistema mudaria o IP visto pela EC2 (lista do
+    Security Group). O cliente sempre conecta direto."""
+    import ssl as _ssl
+
+    from honeyant.apps.resumo_ao_vivo import ClienteResumo
+
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:9")  # proxy que não existe
+    monkeypatch.setenv("NO_PROXY", "")
+    emitir("127.0.0.1", ca, tmp_path)
+    srv = _servir(tmp_path)
+    try:
+        cliente = ClienteResumo(
+            f"https://127.0.0.1:{srv.server_address[1]}", CHAVE, contexto_cliente(ca / "ca.crt")
+        )
+        assert cliente.buscar().total_eventos >= 0
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert _ssl

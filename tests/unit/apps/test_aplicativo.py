@@ -131,3 +131,10 @@ def test_esquecer_chave_faz_perguntar_na_proxima(tmp_path):
     ler_chave(config, perguntar=lambda _: "chave-velha-123")
     aplicativo.esquecer_chave(config)
     assert ler_chave(config, perguntar=lambda _: "chave-nova-123") == "chave-nova-123"
+
+
+def test_chave_digitada_nao_aparece_na_tela():
+    import getpass
+    import inspect
+
+    assert inspect.signature(ler_chave).parameters["perguntar"].default is getpass.getpass

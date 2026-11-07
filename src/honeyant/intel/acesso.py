@@ -15,6 +15,7 @@ import binascii
 import hashlib
 import hmac
 import os
+import threading
 import time
 from collections.abc import Callable
 from typing import Literal
@@ -23,6 +24,8 @@ _N, _R, _P, _DKLEN, _TAMANHO_SAL = 16384, 8, 1, 32, 16
 LIMITE_ERROS = 5
 JANELA_S = 15 * 60
 BLOQUEIO_S = 15 * 60
+# Cada scrypt usa ~16 MiB; o resumo-api tem 128 MiB. No máximo 2 ao mesmo tempo.
+SCRYPT_SIMULTANEOS = 2
 
 Resultado = Literal["ok", "negado", "bloqueado"]
 
@@ -84,25 +87,34 @@ class ControleDeAcesso:
         self._relogio = relogio
         self._erros: dict[str, list[float]] = {}
         self._bloqueado_ate: dict[str, float] = {}
+        # O servidor atende cada conexão num thread: o estado do bloqueio fica sob trava.
+        self._trava = threading.Lock()
+        self._scrypts = threading.BoundedSemaphore(SCRYPT_SIMULTANEOS)
 
     def verificar(self, ip: str, cabecalho_authorization: str | None) -> Resultado:
-        agora = self._relogio()
-        ate = self._bloqueado_ate.get(ip)
-        if ate is not None:
-            if agora < ate:
-                return "bloqueado"
-            del self._bloqueado_ate[ip]
+        with self._trava:
+            agora = self._relogio()
+            ate = self._bloqueado_ate.get(ip)
+            if ate is not None:
+                if agora < ate:
+                    return "bloqueado"
+                del self._bloqueado_ate[ip]
         chave = _chave_do_cabecalho(cabecalho_authorization)
         if chave is not None:
-            calculado = _scrypt(chave, self._sal, self._n, self._r, self._p, len(self._esperado))
+            with self._scrypts:  # fora da trava: o scrypt é lento
+                calculado = _scrypt(
+                    chave, self._sal, self._n, self._r, self._p, len(self._esperado)
+                )
             if hmac.compare_digest(calculado, self._esperado):
-                self._erros.pop(ip, None)
+                with self._trava:
+                    self._erros.pop(ip, None)
                 return "ok"
-        recentes = [t for t in self._erros.get(ip, []) if agora - t < self._janela]
-        recentes.append(agora)
-        if len(recentes) >= self._limite:
-            self._bloqueado_ate[ip] = agora + self._bloqueio
-            self._erros.pop(ip, None)
-        else:
-            self._erros[ip] = recentes
+        with self._trava:
+            recentes = [t for t in self._erros.get(ip, []) if agora - t < self._janela]
+            recentes.append(agora)
+            if len(recentes) >= self._limite:
+                self._bloqueado_ate[ip] = agora + self._bloqueio
+                self._erros.pop(ip, None)
+            else:
+                self._erros[ip] = recentes
         return "negado"
