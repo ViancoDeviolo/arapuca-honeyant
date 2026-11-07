@@ -2,7 +2,9 @@
 // Todo texto vindo da casa entra por textContent; atributos SVG são definidos por código.
 
 import { aceitarSnapshot, estadoDoTunel } from "./estado.js";
-import { caixaDoRotulo, caminhoDoTunel, comprimento, pontoNoCaminho, RAIO_ENTRADA } from "./geometria.js";
+import {
+  caixaDoRotulo, caminhoDoTunel, comprimento, pontoNoCaminho, RAIO_ENTRADA, trecho,
+} from "./geometria.js";
 
 const NS = "http://www.w3.org/2000/svg";
 const ICONES = "/static/icones.svg";
@@ -12,6 +14,18 @@ const VELOCIDADE_PX_S = 150;
 const SETAS_POR_TUNEL = 3;
 const BORDA_EXTERNA = 14; // linha da borda da cena, onde fica a entrada da internet
 const LADO_FECHADURA = 48;
+const DESMORONAMENTO_MS = 1200;
+// Fases do desmoronamento, em fração da duração (spec 4.6): pisca, abre, cadeado.
+const FIM_PISCA = 0.25;
+const FIM_ABERTURA = 0.85;
+const LADO_ENTULHO = 4;
+
+// Com "reduzir movimento", nenhuma formiga anda e o desmoronamento vai direto ao fim.
+export function planoDeAnimacao(reduzido) {
+  return reduzido
+    ? { formigas: false, desmoronamentoMs: 0 }
+    : { formigas: true, desmoronamentoMs: DESMORONAMENTO_MS };
+}
 
 function el(nome, atributos = {}, pai = null) {
   const e = document.createElementNS(NS, nome);
@@ -43,6 +57,7 @@ function desenharEntrada(g, n, casa) {
 }
 
 export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
+  const plano = planoDeAnimacao(reduzido);
   const grupo = (id) => svg.querySelector(`#${id}`);
   const gFundo = grupo("fundo");
   const gTuneis = grupo("tuneis");
@@ -150,12 +165,12 @@ export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
       tunel.g.classList.toggle("bloqueado", e.bloqueado);
     }
     desenharSetas(analise);
-    if (!reduzido) distribuirFormigas(snapshot?.caminhos ?? []);
+    if (plano.formigas) distribuirFormigas(snapshot?.caminhos ?? []);
     return true;
   }
 
   function animar(agora) {
-    if (reduzido) return;
+    if (!plano.formigas) return;
     const dt = ultimoQuadro === null ? 0 : Math.min(0.1, (agora - ultimoQuadro) / 1000);
     ultimoQuadro = agora;
     const avanco = VELOCIDADE_PX_S * dt;
@@ -189,5 +204,76 @@ export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
     aplicar(null, analise ? { rota: null, bloqueadas: analise.bloqueadas } : null);
   }
 
-  return { aplicar, animar, limpar, tuneis };
+  function soltarEntulho(ponto) {
+    const l = LADO_ENTULHO;
+    const r = el("rect", { x: -l / 2, y: -l / 2, width: l, height: l, class: "entulho" }, gFormigas);
+    r.setAttribute("transform", `translate(${ponto.x.toFixed(1)} ${ponto.y.toFixed(1)})`);
+    // Espalha para os lados do túnel (perpendicular ao trecho) e um pouco para a frente.
+    const lado = Math.random() < 0.5 ? -1 : 1;
+    const longe = 8 + Math.random() * 14;
+    const dx = (ponto.dy !== 0 ? lado * longe : (Math.random() - 0.5) * 10);
+    const dy = (ponto.dx !== 0 ? lado * longe : (Math.random() - 0.5) * 10);
+    r.style.setProperty("--dx", `${dx.toFixed(1)}px`);
+    r.style.setProperty("--dy", `${dy.toFixed(1)}px`);
+    r.addEventListener("animationend", () => r.remove(), { once: true });
+    setTimeout(() => r.remove(), 1000); // garantia, se a animação não rodar
+  }
+
+  // Desmorona um túnel (spec 4.6): pisca, o tracejado abre das pontas para o meio
+  // soltando entulho, e o cadeado aparece. Resolve quando termina.
+  function desmoronar(chave) {
+    const tunel = tuneis.get(chave);
+    if (!tunel) return Promise.resolve();
+    for (const t of tuneis.values()) t.g.classList.remove("rota");
+    gSetas.replaceChildren();
+    setas = [];
+    formigas = formigas.filter((f) => {
+      const passa = f.passos.includes(tunel) || f.proximos?.includes(tunel);
+      if (passa) f.g.remove();
+      return !passa;
+    });
+    const terminar = () => {
+      tunel.g.classList.remove("desmoronando");
+      tunel.miolo.style.strokeDasharray = "";
+      tunel.g.querySelectorAll(".ruina").forEach((r) => r.remove());
+      tunel.g.classList.add("bloqueado", "recem-bloqueado");
+    };
+    if (plano.desmoronamentoMs === 0) {
+      terminar();
+      return Promise.resolve();
+    }
+    const total = tunel.comprimento;
+    const ruinas = [0, 1].map(() => el("path", { class: "ruina" }, tunel.g));
+    tunel.g.classList.add("desmoronando");
+    return new Promise((resolver) => {
+      const inicio = performance.now();
+      let ultimoEntulho = 0;
+      const passo = (agora) => {
+        const t = Math.min(1, (agora - inicio) / plano.desmoronamentoMs);
+        if (t >= FIM_PISCA) {
+          tunel.g.classList.remove("desmoronando");
+          const p = Math.min(1, (t - FIM_PISCA) / (FIM_ABERTURA - FIM_PISCA));
+          const aberto = (p * total) / 2;
+          // Miolo sólido só no meio que ainda não caiu; tracejado nas duas pontas.
+          tunel.miolo.style.strokeDasharray = `0 ${aberto} ${Math.max(0, total - 2 * aberto)} ${total}`;
+          ruinas[0].setAttribute("d", caminhoD(trecho(tunel.pontos, 0, aberto)));
+          ruinas[1].setAttribute("d", caminhoD(trecho(tunel.pontos, total - aberto, total)));
+          if (p < 1 && agora - ultimoEntulho > 70) {
+            ultimoEntulho = agora;
+            soltarEntulho(pontoNoCaminho(tunel.pontos, aberto));
+            soltarEntulho(pontoNoCaminho(tunel.pontos, total - aberto));
+          }
+        }
+        if (t >= FIM_ABERTURA) {
+          terminar(); // o cadeado entra na última fase (CSS) antes de a promessa resolver
+          setTimeout(resolver, plano.desmoronamentoMs * (1 - FIM_ABERTURA) + 60);
+          return;
+        }
+        requestAnimationFrame(passo);
+      };
+      requestAnimationFrame(passo);
+    });
+  }
+
+  return { aplicar, animar, limpar, desmoronar, tuneis };
 }
