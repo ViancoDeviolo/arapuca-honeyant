@@ -2,8 +2,8 @@
 
 Uso:
     uv run honeyant-local            # http://127.0.0.1:8000/
-Variáveis: HONEYANT_PERFIL (inseguro|seguro), HONEYANT_DEMO_DIR, HONEYANT_HOST,
-HONEYANT_PORTA. Até o painel ter autenticação, o padrão escuta só em 127.0.0.1.
+Variáveis: HONEYANT_DEMO_DIR, HONEYANT_HOST, HONEYANT_PORTA. O perfil (inseguro|seguro)
+vem da query de cada requisição. Até o painel ter autenticação, só escuta em 127.0.0.1.
 """
 
 import json
@@ -19,9 +19,10 @@ from honeyant.core.evidencia import EvidenciaDeRede
 from honeyant.core.resumo import ResumoDeAmeaca
 from honeyant.core.rota import Snapshot
 from honeyant.painel.app import Encaixe, criar_app
+from honeyant.painel.modelos import AnaliseDeRota, ResumoComOrigem
 from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.fuzzy import ModeloDeRisco
-from honeyant.pathfinder.prever import ColetorDeSnapshots, prever_rota
+from honeyant.pathfinder.prever import ColetorDeSnapshots, analisar_rota, prever_rota
 
 HOSTS_LOCAIS = frozenset({"127.0.0.1", "localhost", "::1"})
 # Cabeçalho Host aceito pelo TrustedHost: o Starlette mantém os colchetes do IPv6.
@@ -30,7 +31,6 @@ HOSTS_DO_CABECALHO = ("127.0.0.1", "localhost", "[::1]")
 
 @dataclass(frozen=True)
 class ConfigLocal:
-    perfil: TipoDePerfil
     demo_dir: Path
     host: str
     porta: int
@@ -45,36 +45,75 @@ class ConfigLocal:
                 "use 127.0.0.1 (ou localhost/::1)"
             )
         return cls(
-            perfil=TipoDePerfil(env.get("HONEYANT_PERFIL", "inseguro")),
             demo_dir=Path(env.get("HONEYANT_DEMO_DIR", "docs/demo")),
             host=host,
             porta=int(env.get("HONEYANT_PORTA", "8000")),
         )
 
 
+def _ler_json(caminho: Path):
+    return json.loads(caminho.read_text(encoding="utf-8"))
+
+
 class FonteDasFixtures:
-    """Implementa a porta `FonteDoFormigueiro` do painel rodando o ACO de verdade."""
+    """Implementa a porta `FonteDoFormigueiro` do painel com o pathfinder de verdade."""
 
     def __init__(
         self,
-        perfil: PerfilDaCasa,
-        evidencias: Sequence[EvidenciaDeRede],
+        casas: Mapping[TipoDePerfil, PerfilDaCasa],
+        evidencias_por_perfil: Mapping[TipoDePerfil, Sequence[EvidenciaDeRede]],
         resumo: ResumoDeAmeaca,
+        demo_dir: Path,
     ) -> None:
-        self._perfil = perfil
-        self._evidencias = list(evidencias)
+        self._casas = dict(casas)
+        self._evidencias = {t: list(e) for t, e in evidencias_por_perfil.items()}
         self._resumo = resumo
+        self._demo_dir = demo_dir
         self._modelo = ModeloDeRisco()
 
-    def snapshots(self, semente: int) -> list[Snapshot]:
+    def snapshots(self, perfil: TipoDePerfil, semente: int) -> list[Snapshot]:
         coletor = ColetorDeSnapshots()
         aco = ACO(ParametrosACO(semente=semente), observadores=[coletor])
-        prever_rota(self._perfil, self._evidencias, self._resumo, aco, self._modelo)
+        prever_rota(self._casas[perfil], self._evidencias[perfil], self._resumo, aco, self._modelo)
         return coletor.snapshots
 
+    def replay(self, perfil: TipoDePerfil) -> list[Snapshot] | None:
+        arquivo = self._demo_dir / f"replay-{perfil.value}.jsonl"
+        if not arquivo.is_file():
+            return None
+        linhas = arquivo.read_text(encoding="utf-8").splitlines()
+        return [Snapshot.model_validate_json(linha) for linha in linhas if linha.strip()]
 
-def _ler_json(caminho: Path):
-    return json.loads(caminho.read_text(encoding="utf-8"))
+    def analise(self, perfil: TipoDePerfil) -> AnaliseDeRota:
+        a = analisar_rota(self._casas[perfil], self._evidencias[perfil], self._resumo, self._modelo)
+        nos_da_rota = a.rota.nos if a.rota else []
+        da_rota = {f"{o}->{d}" for o, d in zip(nos_da_rota, nos_da_rota[1:], strict=False)}
+        por_no: dict[str, float] = {n.id: 0.0 for n in self._casas[perfil].nos}
+        for chave, risco in a.riscos.items():
+            for no in chave.split("->"):
+                por_no[no] = max(por_no[no], risco)
+        return AnaliseDeRota(
+            rota=a.rota,
+            riscos={c: r for c, r in a.riscos.items() if c in da_rota},
+            riscos_por_no=por_no,
+            bloqueadas=a.bloqueadas,
+        )
+
+
+class FonteDoResumoLocal:
+    """O `resumo-real-*.json` mais recente (pelo nome); senão, o resumo de exemplo."""
+
+    def __init__(self, demo_dir: Path) -> None:
+        self._demo_dir = demo_dir
+
+    def resumo(self) -> ResumoComOrigem:
+        reais = sorted(self._demo_dir.glob("resumo-real-*.json"))
+        if reais:
+            return ResumoComOrigem(
+                origem="real", resumo=ResumoDeAmeaca.model_validate(_ler_json(reais[-1]))
+            )
+        exemplo = _ler_json(self._demo_dir / "resumo-congelado.json")
+        return ResumoComOrigem(origem="exemplo", resumo=ResumoDeAmeaca.model_validate(exemplo))
 
 
 def montar(
@@ -84,17 +123,22 @@ def montar(
     encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
 ) -> FastAPI:
     """Monta o painel. O login (PR do Gustavo) chega pelo `encaixe` (spec, seção 3.5)."""
-    tipo = config.perfil.value
-    perfil = PerfilDaCasa.model_validate(_ler_json(config.demo_dir / f"perfil-{tipo}.json"))
-    evidencias = [
-        EvidenciaDeRede.model_validate(e)
-        for e in _ler_json(config.demo_dir / f"evidencias-{tipo}.json")
-    ]
-    resumo = ResumoDeAmeaca.model_validate(_ler_json(config.demo_dir / "resumo-congelado.json"))
-    fonte = FonteDasFixtures(perfil, evidencias, resumo)
+    d = config.demo_dir
+    casas = {
+        t: PerfilDaCasa.model_validate(_ler_json(d / f"perfil-{t.value}.json"))
+        for t in TipoDePerfil
+    }
+    evidencias = {
+        t: [EvidenciaDeRede.model_validate(e) for e in _ler_json(d / f"evidencias-{t.value}.json")]
+        for t in TipoDePerfil
+    }
+    fonte_resumo = FonteDoResumoLocal(d)
+    # As rotas usam o mesmo resumo que o cartão mostra (spec do painel, 3.7).
+    fonte = FonteDasFixtures(casas, evidencias, fonte_resumo.resumo().resumo, d)
     return criar_app(
-        perfil,
+        casas,
         fonte,
+        fonte_resumo,
         intervalo_base=intervalo_base,
         intervalo_minimo=intervalo_minimo,
         encaixe=encaixe,

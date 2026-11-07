@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from honeyant.core.casa import PerfilDaCasa
+from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
 from honeyant.painel.app import criar_app
 
 STATIC = Path(__file__).parents[3] / "src" / "honeyant" / "painel" / "static"
@@ -66,11 +66,11 @@ def test_rotulo_com_html_sai_como_json_intacto():
     perfil = PerfilDaCasa.model_validate(dados)
 
     class SemSnapshots:
-        def snapshots(self, semente):
+        def snapshots(self, perfil, semente):
             return []
 
-    r = TestClient(criar_app(perfil, SemSnapshots()), base_url="http://127.0.0.1").get(
-        "/api/v1/perfil"
-    )
+    casas = {TipoDePerfil.INSEGURO: perfil, TipoDePerfil.SEGURO: perfil}
+    app = criar_app(casas, SemSnapshots(), None)
+    r = TestClient(app, base_url="http://127.0.0.1").get("/api/v1/casa")
     assert r.headers["content-type"].startswith("application/json")
     assert r.json()["nos"][1]["rotulo"] == XSS

@@ -1,22 +1,25 @@
-"""App web do painel: perfil da casa e formigueiro por SSE (spec, seções 3 e 11).
+"""App web do painel: casa, resumo, rotas e formigueiro por SSE (spec, seções 3 e 11).
 
 O login não mora aqui: chega pelo `Encaixe` (spec, seção 3.5). Sem encaixe, nenhuma rota
 é protegida, e por isso o composition root só sobe o painel em 127.0.0.1.
 """
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, FastAPI, Query, Request, Response, params
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, Response, params
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from honeyant.core.casa import PerfilDaCasa
-from honeyant.painel.ports import FonteDoFormigueiro
+from honeyant.core.casa import PerfilDaCasa, TipoDePerfil
+from honeyant.core.rota import Snapshot
+from honeyant.painel.modelos import AnaliseDeRota, ResumoComOrigem
+from honeyant.painel.ports import FonteDoFormigueiro, FonteDoResumo
+from honeyant.painel.streams import RegistroDeStreams
 
 ESTATICOS = Path(__file__).parent / "static"
 CSP = (
@@ -51,15 +54,18 @@ def _evento(nome: str, dados: str) -> str:
 
 
 def criar_app(
-    perfil: PerfilDaCasa,
+    casas: Mapping[TipoDePerfil, PerfilDaCasa],
     fonte: FonteDoFormigueiro,
+    fonte_resumo: FonteDoResumo,
     intervalo_base: float = 0.6,
     intervalo_minimo: float = 0.15,
     dormir: Dormir = asyncio.sleep,
     *,
     encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
     hosts_permitidos: Sequence[str] = HOSTS_PADRAO,
+    registro: RegistroDeStreams | None = None,
 ) -> FastAPI:
+    streams = registro or RegistroDeStreams()
     app = FastAPI(title="HoneyAnt", docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.middleware("http")
@@ -75,27 +81,57 @@ def criar_app(
     api = APIRouter(prefix="/api/v1", dependencies=list(encaixe.protecao_api))
     pagina = APIRouter(dependencies=list(encaixe.protecao_pagina))
 
-    @api.get("/perfil")
-    def ver_perfil() -> dict:
-        return perfil.model_dump(mode="json")
+    @api.get("/casa")
+    def ver_casa(perfil: TipoDePerfil = TipoDePerfil.INSEGURO) -> dict:
+        return casas[perfil].model_dump(mode="json")
+
+    @api.get("/resumo")
+    def ver_resumo() -> ResumoComOrigem:
+        return fonte_resumo.resumo()
+
+    @api.get("/rotas")
+    def ver_rotas() -> dict[TipoDePerfil, AnaliseDeRota]:
+        return {t: fonte.analise(t) for t in TipoDePerfil}
+
+    @api.get("/replay")
+    def ver_replay() -> dict[TipoDePerfil, bool]:
+        return {t: fonte.replay(t) is not None for t in TipoDePerfil}
 
     @api.get("/formigueiro/stream")
     async def formigueiro(
-        modo: Literal["prever"] = "prever",
+        request: Request,
+        perfil: TipoDePerfil = TipoDePerfil.INSEGURO,
+        modo: Literal["prever", "replay"] = "prever",
         semente: int = Query(42, ge=0, le=2**31 - 1),
-        velocidade: float = Query(1.0, ge=0.25, le=4),
+        velocidade: float = Query(1.0, ge=0.25, le=4, allow_inf_nan=False),
     ) -> StreamingResponse:
+        gravados: list[Snapshot] | None = None
+        if modo == "replay":
+            replay = fonte.replay(perfil)
+            if replay is None:
+                raise HTTPException(404, "replay indisponível para este perfil")
+            gravados = list(replay)
         # No máximo um snapshot a cada `intervalo_minimo` (spec: 150 ms).
         espera = max(intervalo_minimo, intervalo_base / velocidade)
+        cliente = request.client.host if request.client else "?"
 
         async def gerar() -> AsyncIterator[str]:
-            # O ACO é CPU puro: roda fora do loop para não travar outras conexões.
-            snapshots = await asyncio.to_thread(fonte.snapshots, semente)
-            for i, s in enumerate(snapshots):
-                if i:
-                    await dormir(espera)
-                yield _evento("snapshot", s.model_dump_json())
-            yield _evento("fim", "{}")
+            parar = streams.abrir(cliente)
+            try:
+                if gravados is None:
+                    # O ACO é CPU puro: roda fora do loop para não travar outras conexões.
+                    snapshots = await asyncio.to_thread(fonte.snapshots, perfil, semente)
+                else:
+                    snapshots = gravados
+                for i, s in enumerate(snapshots):
+                    if i:
+                        await dormir(espera)
+                    if parar.is_set():  # o mesmo cliente abriu um stream mais novo
+                        break
+                    yield _evento("snapshot", s.model_dump_json())
+                yield _evento("fim", "{}")
+            finally:
+                streams.fechar(cliente, parar)
 
         return StreamingResponse(
             gerar(),
