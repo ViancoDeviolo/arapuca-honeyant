@@ -87,7 +87,11 @@ class ClienteResumo:
             raise FalhaDeRede(f"HTTP {erro.code}") from None
         except urllib.error.URLError as erro:
             if isinstance(erro.reason, ssl.SSLCertVerificationError):
-                raise FalhaDeRede("certificado não confere") from None
+                detalhe = getattr(erro.reason, "verify_message", "") or ""
+                motivo = (
+                    f"certificado não confere ({detalhe})" if detalhe else "certificado não confere"
+                )
+                raise FalhaDeRede(motivo) from None
             raise FalhaDeRede(str(erro.reason)) from None
         except Exception as erro:  # noqa: BLE001  # nada inesperado pode virar 500 na página
             raise FalhaDeRede(type(erro).__name__) from None
@@ -98,10 +102,15 @@ class ClienteResumo:
 
 
 class FonteDoResumoAoVivo:
-    """Porta `FonteDoResumo` do app. `resumo()` responde **na hora** com o nível disponível;
-    a consulta à EC2 roda num thread em segundo plano (`em_segundo_plano=False` só nos testes
-    de lógica). `avisar` recebe as mudanças de estado (o app manda para o console);
-    `ao_recusar` é chamado uma vez depois de um 401 (o app esquece a chave salva)."""
+    """Porta `FonteDoResumo` do app.
+
+    Em segundo plano (o app): `iniciar()` sobe **um** thread que consulta a EC2 na abertura e
+    depois a cada 15 s, contados do início de cada consulta (com recuo nas falhas, parando no
+    401). `resumo()` só lê o estado: responde na hora e já com o último resultado.
+
+    `em_segundo_plano=False` (testes de lógica): `resumo()` consulta quando está na hora.
+    `avisar` recebe as mudanças de estado (o app manda para o console); `ao_recusar` é
+    chamado uma vez depois de um 401 (o app esquece a chave salva)."""
 
     def __init__(
         self,
@@ -126,25 +135,42 @@ class FonteDoResumoAoVivo:
         self._proxima = 0.0  # instante (relógio) da próxima consulta permitida
         self._falhas = 0
         self._parado = False  # depois de um 401
-        self._em_andamento = False
+        self._iniciado = False
         self._ultimo_ao_vivo: ResumoComOrigem | None = None
         self._estado = ""  # última mensagem mandada ao console
         self.espera_s: float = INTERVALO_S
 
-    def resumo(self) -> ResumoComOrigem:
+    def iniciar(self) -> None:
+        """Sobe o thread de consulta (uma vez). Sem cliente, não há o que consultar."""
         with self._trava:
-            consultar = (
-                self._cliente is not None
-                and not self._parado
-                and not self._em_andamento
-                and self._relogio() >= self._proxima
-            )
-            if consultar:
-                self._em_andamento = True
-        if consultar:
-            if self._em_segundo_plano:
-                threading.Thread(target=self._atualizar, daemon=True).start()
-            else:
+            if self._iniciado or self._cliente is None or not self._em_segundo_plano:
+                return
+            self._iniciado = True
+        threading.Thread(target=self._laco, daemon=True, name="resumo-ao-vivo").start()
+
+    def _laco(self, dormir: Callable[[float], None] = time.sleep) -> None:
+        while True:
+            espera = self._rodada()
+            with self._trava:
+                if self._parado:
+                    return
+            dormir(espera)
+
+    def _rodada(self) -> float:
+        """Uma consulta; devolve quanto dormir até a próxima (contando desde o início)."""
+        inicio = self._relogio()
+        self._atualizar()
+        return max(0.0, self.espera_s - (self._relogio() - inicio))
+
+    def resumo(self) -> ResumoComOrigem:
+        if not self._em_segundo_plano:
+            with self._trava:
+                na_hora = (
+                    self._cliente is not None
+                    and not self._parado
+                    and self._relogio() >= self._proxima
+                )
+            if na_hora:
                 self._atualizar()
         with self._trava:
             if self._parado or self._ultimo_ao_vivo is None:
@@ -173,9 +199,6 @@ class FonteDoResumoAoVivo:
                 f"Offline ({erro or type(erro).__name__}): usando o resumo guardado."
             )
             return
-        finally:
-            with self._trava:
-                self._em_andamento = False
         atual = ResumoComOrigem(origem="ao_vivo", resumo=resumo, atualizado_em=self._agora())
         self._gravar_cache(atual)
         with self._trava:

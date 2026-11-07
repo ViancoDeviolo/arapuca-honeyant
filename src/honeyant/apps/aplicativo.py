@@ -65,19 +65,21 @@ def ler_chave(config: Path, perguntar: Callable[[str], str] = getpass.getpass) -
     """A chave salva; sem ela (ou com o arquivo corrompido), pergunta e salva."""
     try:
         chave = json.loads(config.read_text(encoding="utf-8")).get("chave")
-        if isinstance(chave, str) and chave.strip():
+        if isinstance(chave, str) and _CHAVE_VALIDA.match(chave.strip()):
             return chave.strip()
     except (OSError, ValueError, AttributeError):
         pass
     for _tentativa in range(2):
         chave = perguntar(
-            "Cole a chave de acesso e tecle Enter (ou só Enter para usar o resumo guardado): "
+            "Cole a chave de acesso e tecle Enter (nada aparece enquanto você cola; "
+            "só Enter para usar o resumo guardado): "
         ).strip()
         if not chave:
             return None
         if _CHAVE_VALIDA.match(chave):
             config.parent.mkdir(parents=True, exist_ok=True)
             config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            print(f"Chave recebida ({len(chave)} caracteres).")
             return chave
         print(
             "Essa chave tem caracteres que não são de uma chave (espaço ou aspas curvas do "
@@ -152,6 +154,7 @@ def main() -> int:
         avisar=lambda mensagem: print(mensagem, flush=True),
         ao_recusar=lambda: esquecer_chave(usuario / "config.json"),
     )
+    fonte_resumo.iniciar()  # primeira consulta já na abertura; depois a cada 15 s
     app = montar(ConfigLocal(demo, "127.0.0.1", porta), fonte_resumo=fonte_resumo)
     endereco = f"http://127.0.0.1:{porta}/"
     abrir_navegador(endereco)

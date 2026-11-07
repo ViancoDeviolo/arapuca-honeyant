@@ -69,8 +69,15 @@ def _config(pasta: Path, nome: str, extensoes: str) -> Path:
 
 def gerar_ca(ca_dir: Path) -> None:
     """Cria `ca.key` e `ca.crt` em `ca_dir`, se ainda não existirem."""
-    if (ca_dir / "ca.key").is_file() and (ca_dir / "ca.crt").is_file():
+    tem_chave, tem_certificado = (ca_dir / "ca.key").is_file(), (ca_dir / "ca.crt").is_file()
+    if tem_chave and tem_certificado:
         return
+    if tem_chave or tem_certificado:
+        # Gerar outra CA invalidaria todos os apps já distribuídos.
+        raise ErroDeCertificado(
+            f"CA pela metade em {ca_dir} (falta {'ca.crt' if tem_chave else 'ca.key'}): "
+            "recupere o arquivo do backup em vez de gerar outra CA"
+        )
     if localizar_openssl() is None:
         _openssl("version")  # levanta a mensagem clara
     ca_dir.mkdir(parents=True, exist_ok=True)

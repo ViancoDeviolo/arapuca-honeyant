@@ -36,7 +36,8 @@ function mostrarOrigem(resumo) {
 const NS_SVG = "http://www.w3.org/2000/svg";
 const NOME_SERVICO = { telnet: "Telnet", mqtt: "MQTT", http: "HTTP", upnp: "UPnP", lan: "LAN" };
 const INTERVALO_ATAQUE_MS = 2000;
-const INTERVALO_RESUMO_MS = 15000;
+// O painel local é barato: 3 s. Quem limita as consultas à EC2 (15 s) é o servidor do app.
+const INTERVALO_RESUMO_MS = 3000;
 const NIVEIS = ["baixo", "medio", "alto", "critico"];
 let nomesDePais = null;
 try {
@@ -385,7 +386,7 @@ async function iniciar() {
     }, INTERVALO_ATAQUE_MS);
   }
 
-  // A cada 15 s, o resumo de novo: ao vivo (EC2), cache offline ou embutido.
+  // A cada 3 s, o resumo de novo: ao vivo (EC2), cache offline ou embutido.
   // A rota não muda: Prever, Mitigar e Replay usam o resumo embutido no servidor.
   setInterval(async () => {
     let novo;

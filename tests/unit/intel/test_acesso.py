@@ -175,3 +175,19 @@ def test_no_maximo_2_scrypt_ao_mesmo_tempo(monkeypatch):
     for t in threads:
         t.join()
     assert maximo[0] <= acesso.SCRYPT_SIMULTANEOS == 2
+
+
+def test_requisicao_em_andamento_nao_passa_do_bloqueio(monkeypatch):
+    """Segunda revisão, menor 2: quem passou pela checagem antes do 5º erro não ganha uma
+    tentativa extra depois do bloqueio."""
+    controle = ControleDeAcesso(HASH, relogio=lambda: 1000.0)
+    # Simula a corrida: o bloqueio acontece enquanto esta requisição está no scrypt.
+    original = acesso._scrypt
+
+    def scrypt_que_bloqueia(*args):
+        for _ in range(5):
+            controle._bloqueado_ate[IP] = 1000.0 + 900
+        return original(*args)
+
+    monkeypatch.setattr(acesso, "_scrypt", scrypt_que_bloqueia)
+    assert controle.verificar(IP, f"Bearer {CHAVE}") == "bloqueado"

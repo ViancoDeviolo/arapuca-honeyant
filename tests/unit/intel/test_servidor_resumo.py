@@ -183,3 +183,24 @@ def test_linha_corrompida_no_banco_da_503(servidor):
     finally:
         type(fonte).__call__ = Fonte.__call__
     assert fonte_original
+
+
+def test_erro_de_conexao_vira_uma_linha_json(capsys):
+    """Segunda revisão, menor 3: handshake quebrado ou HTTP puro na porta TLS não despeja
+    traceback no log."""
+    from honeyant.intel.adapters.servidor_resumo import criar_servidor
+
+    srv = criar_servidor("127.0.0.1", 0, Fonte(), ControleDeAcesso(HASH), None)
+    try:
+        try:
+            raise ConnectionResetError("cliente sumiu")
+        except ConnectionResetError:
+            srv.handle_error(None, ("203.0.113.7", 50000))
+    finally:
+        srv.server_close()
+    err = capsys.readouterr().err
+    assert json.loads(err.strip().splitlines()[-1]) == {
+        "erro": "conexao",
+        "tipo": "ConnectionResetError",
+    }
+    assert "Traceback" not in err and "203.0.113.7" not in err

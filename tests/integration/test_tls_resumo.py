@@ -202,3 +202,21 @@ def test_cliente_ignora_o_proxy_do_sistema(ca, tmp_path, monkeypatch):
         srv.shutdown()
         srv.server_close()
     assert _ssl
+
+
+def test_conferir_recusa_url_sem_https(capsys):
+    from honeyant.apps import conferir_resumo
+
+    assert conferir_resumo.main(["--url", "http://127.0.0.1"], chave="nao-deve-sair") == 2
+    assert "https://" in capsys.readouterr().out
+
+
+def test_ca_pela_metade_nao_e_sobrescrita(tmp_path):
+    """Segunda revisão, menor 7: só a ca.key (ou só o ca.crt) é um estado quebrado; gerar
+    outra CA invalidaria todos os apps já distribuídos."""
+    from honeyant.apps import certificados
+
+    (tmp_path / "ca.key").write_text("chave antiga", encoding="utf-8")
+    with pytest.raises(certificados.ErroDeCertificado, match="metade"):
+        gerar_ca(tmp_path)
+    assert (tmp_path / "ca.key").read_text(encoding="utf-8") == "chave antiga"

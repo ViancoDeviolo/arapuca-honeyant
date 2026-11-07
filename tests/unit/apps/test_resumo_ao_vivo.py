@@ -251,6 +251,7 @@ def test_em_segundo_plano_a_pagina_nao_espera_a_ec2(tmp_path):
     fonte = FonteDoResumoAoVivo(
         ClienteLento(1.5), tmp_path / "c.json", Embutido(), em_segundo_plano=True
     )
+    fonte.iniciar()
     inicio = time.monotonic()
     r = fonte.resumo()
     assert time.monotonic() - inicio < 0.5
@@ -310,3 +311,100 @@ def test_console_mostra_as_transicoes_sem_repetir(tmp_path, relogio):
     assert "IP bloqueado por 15 min" in mensagens[1] and "offline" in mensagens[1].lower()
     assert "chave de acesso inválida" in mensagens[2].lower()
     assert len(mensagens) == 3
+
+
+# ---------- segunda revisão, I-1: um único thread de consulta, sem atraso de uma rodada ----------
+
+
+class ClienteComDuracao:
+    """Cada busca "demora" `duracao` no relógio falso; `falhar` simula a rede caída."""
+
+    def __init__(self, relogio, duracao=0.3):
+        self.relogio, self.duracao, self.falhar, self.chamadas = relogio, duracao, False, 0
+
+    def buscar(self):
+        self.chamadas += 1
+        self.relogio.t += self.duracao
+        if self.falhar:
+            raise FalhaDeRede("sem rede")
+        return _resumo(self.chamadas)
+
+
+def test_rodada_conta_os_15_s_desde_o_inicio_da_consulta(tmp_path, relogio):
+    cliente = ClienteComDuracao(relogio)
+    fonte = _fonte(cliente, tmp_path, relogio)
+    assert fonte._rodada() == pytest.approx(14.7)  # 15 s desde o início; a busca levou 0,3 s
+    assert fonte.resumo().origem == "ao_vivo"  # o resultado aparece na hora, sem esperar outra
+    assert cliente.chamadas == 1
+
+
+def test_em_segundo_plano_resumo_so_le_o_estado(tmp_path, relogio):
+    cliente = ClienteComDuracao(relogio)
+    fonte = _fonte(cliente, tmp_path, relogio, em_segundo_plano=True)
+    for _ in range(5):
+        fonte.resumo()
+        relogio.t += 30
+    assert cliente.chamadas == 0  # quem consulta é só o thread do iniciar()
+
+
+def test_rede_cai_e_a_pagina_ve_offline_em_ate_20_s(tmp_path, relogio):
+    """Linha do tempo com o relógio falso: o thread consulta a cada 15 s e a página pede o
+    resumo local a cada 3 s (app.js)."""
+    cliente = ClienteComDuracao(relogio, duracao=0.2)
+    fonte = _fonte(cliente, tmp_path, relogio, em_segundo_plano=True)
+    inicio = relogio.t
+    proxima_rodada = relogio.t
+    corte = inicio + 31  # a rede cai no meio do intervalo
+    visto_offline = None
+    pagina = inicio
+    while relogio.t < inicio + 90 and visto_offline is None:
+        if relogio.t >= proxima_rodada:
+            cliente.falhar = relogio.t >= corte
+            proxima_rodada = relogio.t + fonte._rodada()
+        if relogio.t >= pagina:
+            if fonte.resumo().origem != "ao_vivo" and relogio.t >= corte:
+                visto_offline = relogio.t
+            pagina += 3
+        relogio.t += 0.1
+    assert visto_offline is not None and visto_offline - corte <= 20
+
+
+def test_iniciar_consulta_ja_na_abertura(tmp_path):
+    fonte = FonteDoResumoAoVivo(
+        ClienteFalso(_resumo(9)), tmp_path / "c.json", Embutido(), em_segundo_plano=True
+    )
+    fonte.iniciar()
+    for _ in range(30):
+        if fonte.resumo().origem == "ao_vivo":
+            break
+        time.sleep(0.05)
+    assert fonte.resumo().resumo.total_eventos == 9
+
+
+def test_iniciar_para_depois_do_401(tmp_path):
+    cliente = ClienteFalso(ChaveInvalida())
+    fonte = FonteDoResumoAoVivo(cliente, tmp_path / "c.json", Embutido(), em_segundo_plano=True)
+    fonte.iniciar()
+    time.sleep(0.3)
+    assert cliente.chamadas == 1
+    assert fonte.resumo().aviso == AVISO_CHAVE_INVALIDA
+
+
+def test_certificado_vencido_aparece_no_motivo():
+    """Segunda revisão, menor 5: vencido não pode parecer "CA errada"."""
+    import ssl
+    import urllib.error
+
+    from honeyant.apps import resumo_ao_vivo as rav
+
+    erro = ssl.SSLCertVerificationError(1, "certificate verify failed")
+    erro.verify_message = "certificate has expired"
+
+    class Abridor:
+        def open(self, *a, **k):
+            raise urllib.error.URLError(erro)
+
+    cliente = rav.ClienteResumo("https://127.0.0.1", "chave-qualquer", ssl.create_default_context())
+    cliente._abridor = Abridor()
+    with pytest.raises(FalhaDeRede, match="certificate has expired"):
+        cliente.buscar()

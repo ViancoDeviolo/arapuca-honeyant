@@ -1,4 +1,4 @@
-# Gera dist\HoneyAnt.exe (Windows) com o PyInstaller 6.22.3. Veja o ADR 0011.
+﻿# Gera dist\HoneyAnt.exe (Windows) com o PyInstaller 6.22.3. Veja o ADR 0011.
 #
 #   powershell -ExecutionPolicy Bypass -File infra\app\construir.ps1
 #
@@ -20,6 +20,12 @@ if (-not (Test-Path $Config)) {
 }
 if (-not (Test-Path $Ca)) {
     Write-Error "Falta $Ca. Rode: uv run honeyant-certificados --ip <ip-elastico>"
+}
+# A URL precisa ser https:// com um IP de verdade (o exemplo tem <ip-elastico>): senão o
+# .exe sai pronto e fica offline para sempre.
+$url = (Get-Content $Config -Raw | ConvertFrom-Json).url
+if ($url -notmatch '^https://\d{1,3}(\.\d{1,3}){3}(:\d+)?/?$') {
+    Write-Error "URL inválida em ${Config}: '$url'. Use https://<ip-elastico>, com o IP de verdade."
 }
 
 Remove-Item -Recurse -Force build-app -ErrorAction SilentlyContinue

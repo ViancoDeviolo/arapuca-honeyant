@@ -120,7 +120,14 @@ def criar_servidor(
         def log_message(self, format, *args) -> None:  # noqa: A002
             pass  # o registro é o _registrar: sem cabeçalhos, sem a chave
 
-    servidor = ThreadingHTTPServer((endereco, porta), Manipulador)
+    class Servidor(ThreadingHTTPServer):
+        def handle_error(self, request, client_address) -> None:  # noqa: ARG002
+            # Handshake quebrado, HTTP puro na porta TLS, cliente que sumiu: uma linha
+            # JSON, sem traceback e sem o IP do cliente.
+            tipo = type(sys.exc_info()[1]).__name__
+            print(json.dumps({"erro": "conexao", "tipo": tipo}), file=sys.stderr, flush=True)
+
+    servidor = Servidor((endereco, porta), Manipulador)
     servidor.daemon_threads = True
     if contexto_tls is not None:
         # Handshake só na primeira leitura, já no thread da conexão e sob o timeout de

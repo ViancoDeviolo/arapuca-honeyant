@@ -181,6 +181,10 @@ mostrando só 23 e 1883.
 
 ```bash
 cd ~/arapuca-honeyant
+# O compose.cloud.yml usa env_file opcional: precisa do Docker Compose 2.24 ou mais novo,
+# senão NENHUM comando do compose funciona (nem os da isca). Confira ANTES do git pull:
+docker compose version --short
+# Se for mais velho, com a janela aberta: sudo apt-get update && sudo apt-get install -y docker-compose-plugin
 git switch main && git pull --ff-only
 
 # Hash da chave: cole a linha do passo 1, com as aspas simples (o Compose interpreta "$").
@@ -196,10 +200,10 @@ sudo chmod 600 infra/certs-resumo/servidor.key
 sudo chmod 644 infra/certs-resumo/servidor.crt
 ls -l infra/resumo-api.env infra/certs-resumo/   # .env: seu usuário, -rw-------; .key: 10002, -rw-------
 
-docker compose version --short                  # precisa ser 2.24 ou mais novo (env_file opcional)
 docker compose -f infra/compose.cloud.yml build isca
-docker compose -f infra/compose.cloud.yml up -d --no-deps resumo-api   # --no-deps: não recria a isca
-docker compose -f infra/compose.cloud.yml logs resumo-api | tail -3   # {"acao": "resumo-api iniciado", ...}
+# O resumo-api está no profile "ao-vivo": o deploy da isca (seção 5) não o sobe.
+docker compose -f infra/compose.cloud.yml --profile ao-vivo up -d --no-deps resumo-api   # --no-deps: não recria a isca
+docker compose -f infra/compose.cloud.yml --profile ao-vivo logs resumo-api | tail -3   # {"acao": "resumo-api iniciado", ...}
 docker image prune -f
 ```
 
@@ -209,6 +213,12 @@ Feche a janela (seção 4) e confira o `curl` de saída (seção 6).
 
 ```bash
 docker stats --no-stream   # isca abaixo de 256 MiB e resumo-api abaixo de 128 MiB
+
+# A isca continua gravando com o resumo-api lendo (seção 7, "Cuidado para o painel"):
+docker compose -f infra/compose.cloud.yml exec isca honeyant-isca estatisticas   # anote o total
+docker compose -f infra/compose.cloud.yml restart isca
+sleep 120
+docker compose -f infra/compose.cloud.yml exec isca honeyant-isca estatisticas   # o total não pode ter caído
 ```
 
 Do seu PC (com o IP liberado na 443), com o mesmo cliente do app (CA do projeto, IP no
@@ -224,6 +234,8 @@ mesmo com tudo certo. Conferido em 07/11 no ensaio local do compose da nuvem: co
 
 Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
 
+Depois do restart da isca acima, rode o `honeyant-conferir-resumo` de novo: tem que voltar a dar 200.
+
 **5. Renovação (a cada 90 dias):** a CA é a mesma, então nenhum app precisa ser refeito e
 não precisa de janela de saída. Os arquivos atuais pertencem ao usuário 10002, por isso a
 cópia vai para uma pasta intermediária e o `install` coloca dono e permissão de uma vez:
@@ -231,21 +243,23 @@ cópia vai para uma pasta intermediária e o `install` coloca dono e permissão 
 ```bash
 # No PC:
 uv run honeyant-certificados --ip <IP>
-scp -i <CHAVE> infra/certs-resumo/servidor.crt infra/certs-resumo/servidor.key <USUARIO>@<IP>:/tmp/
+scp -i <CHAVE> infra/certs-resumo/servidor.crt infra/certs-resumo/servidor.key <USUARIO>@<IP>:~/
 
 # Na instância:
 cd ~/arapuca-honeyant
-sudo install -o 10002 -g 10001 -m 600 /tmp/servidor.key infra/certs-resumo/servidor.key
-sudo install -o 10002 -g 10001 -m 644 /tmp/servidor.crt infra/certs-resumo/servidor.crt
-rm /tmp/servidor.key /tmp/servidor.crt
-docker compose -f infra/compose.cloud.yml restart resumo-api   # o certificado é relido ao reiniciar
+# Pela home (não /tmp): a chave nunca fica legível para outros usuários.
+chmod 600 ~/servidor.key
+sudo install -o 10002 -g 10001 -m 600 ~/servidor.key infra/certs-resumo/servidor.key
+sudo install -o 10002 -g 10001 -m 644 ~/servidor.crt infra/certs-resumo/servidor.crt
+rm ~/servidor.key ~/servidor.crt
+docker compose -f infra/compose.cloud.yml --profile ao-vivo restart resumo-api   # o certificado é relido ao reiniciar
 ```
 
 **Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env` (passo 3) e
 **recriar** o container, porque o `restart` mantém o ambiente antigo:
 
 ```bash
-docker compose -f infra/compose.cloud.yml up -d --no-deps --force-recreate resumo-api
+docker compose -f infra/compose.cloud.yml --profile ao-vivo up -d --no-deps --force-recreate resumo-api
 ```
 
 Depois, a chave nova para cada pessoa. Quem tinha a antiga recebe "chave de acesso inválida":

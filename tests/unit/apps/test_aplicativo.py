@@ -138,3 +138,16 @@ def test_chave_digitada_nao_aparece_na_tela():
     import inspect
 
     assert inspect.signature(ler_chave).parameters["perguntar"].default is getpass.getpass
+
+
+def test_chave_salva_invalida_pergunta_de_novo(tmp_path):
+    """Segunda revisão, menor 6: config.json editado à mão com caractere estranho."""
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"chave": "abc“def-ghi"}), encoding="utf-8")
+    assert ler_chave(config, perguntar=lambda _: "chave-boa-123") == "chave-boa-123"
+
+
+def test_confirma_quantos_caracteres_chegaram(tmp_path, capsys):
+    """Segunda revisão, menor 10: o getpass não mostra nada; o app confirma o tamanho."""
+    ler_chave(tmp_path / "config.json", perguntar=lambda _: "x" * 43)
+    assert "43 caracteres" in capsys.readouterr().out

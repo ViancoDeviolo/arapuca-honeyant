@@ -107,9 +107,13 @@ class ControleDeAcesso:
                 )
             if hmac.compare_digest(calculado, self._esperado):
                 with self._trava:
+                    if self._bloqueado_ate.get(ip, 0) > agora:
+                        return "bloqueado"  # o IP foi bloqueado enquanto esta conferia
                     self._erros.pop(ip, None)
                 return "ok"
         with self._trava:
+            if self._bloqueado_ate.get(ip, 0) > agora:
+                return "bloqueado"
             recentes = [t for t in self._erros.get(ip, []) if agora - t < self._janela]
             recentes.append(agora)
             if len(recentes) >= self._limite:

@@ -48,6 +48,8 @@ services:
     # Escuta em 8443 (porta alta: sem root nem capability); o host expõe 443, e o Security
     # Group libera a 443 só para os IPs cadastrados. Ver infra/aws/DEPLOY.md, seção 7.2.
     image: honeyant-isca:local
+    # Só sobe quando chamado pelo nome (DEPLOY 7.2): o deploy da isca (seção 5) não o inicia.
+    profiles: ["ao-vivo"]
     depends_on:
       isca:
         condition: service_started
@@ -67,7 +69,14 @@ services:
       - "443:8443"
     volumes:
       - dados:/dados
-      - ./certs-resumo:/certs:ro
+      # Sem create_host_path: se os certificados não foram copiados, falha com erro claro em
+      # vez de criar uma pasta vazia do root que depois atrapalha o scp.
+      - type: bind
+        source: ./certs-resumo
+        target: /certs
+        read_only: true
+        bind:
+          create_host_path: false
     read_only: true
     tmpfs:
       - /tmp

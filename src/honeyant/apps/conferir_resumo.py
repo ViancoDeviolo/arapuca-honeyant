@@ -29,6 +29,9 @@ def main(argv: Sequence[str] | None = None, chave: str | None = None) -> int:
     p.add_argument("--url", required=True, help="https://<ip-elastico>")
     p.add_argument("--ca", type=Path, default=CA_PADRAO / "ca.crt")
     args = p.parse_args(argv)
+    if not args.url.startswith("https://"):
+        print("a URL precisa começar com https:// (a chave nunca vai em texto puro)")
+        return 2
     chave = chave if chave is not None else getpass.getpass("Chave de acesso: ").strip()
     abridor = urllib.request.build_opener(
         urllib.request.ProxyHandler({}),  # direto, como o app
