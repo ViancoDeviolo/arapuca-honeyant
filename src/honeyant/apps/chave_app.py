@@ -17,7 +17,8 @@ def main() -> None:
     print(f"Chave de acesso (entregue a cada pessoa por fora): {chave}")
     print()
     print("Linha para infra/resumo-api.env na EC2:")
-    print(f"HONEYANT_RESUMO_CHAVE_HASH={gerar_hash(chave)}")
+    # Entre aspas simples: o Docker Compose interpreta "$" no env_file e corromperia o hash.
+    print(f"HONEYANT_RESUMO_CHAVE_HASH='{gerar_hash(chave)}'")
 
 
 if __name__ == "__main__":

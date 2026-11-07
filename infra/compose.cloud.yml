@@ -42,5 +42,41 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  resumo-api:
+    # Resumo agregado (sem IP) para o app ao vivo. Só GET /api/v1/resumo, com chave Bearer.
+    # Outro usuário (10002) no grupo da isca: lê o banco em mode=ro, sem poder escrever.
+    # Escuta em 8443 (porta alta: sem root nem capability); o host expõe 443, e o Security
+    # Group libera a 443 só para os IPs cadastrados. Ver infra/aws/DEPLOY.md, seção 7.2.
+    image: honeyant-isca:local
+    depends_on:
+      isca:
+        condition: service_started
+    user: "10002:10001"
+    command: ["honeyant-servir-resumo"]
+    env_file: resumo-api.env          # HONEYANT_RESUMO_CHAVE_HASH (dono 10002, 600; fora do git)
+    environment:
+      HONEYANT_DB: /dados/isca.db
+      HONEYANT_RESUMO_CERT: /certs/servidor.crt
+      HONEYANT_RESUMO_CERT_CHAVE: /certs/servidor.key
+    ports:
+      - "443:8443"
+    volumes:
+      - dados:/dados
+      - ./certs-resumo:/certs:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 64
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   dados:

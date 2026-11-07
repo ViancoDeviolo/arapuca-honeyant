@@ -156,6 +156,74 @@ uv run honeyant-gravar-replay                 # o resumo em uso mudou
 algum `docs/demo/resumo-*.json` tiver algo com cara de IPv4. O `grep` acima precisa dar `0`
 em cada arquivo antes do commit.
 
+## 7.2 resumo-api (app ao vivo)
+
+Serve **só** `GET /api/v1/resumo` (agregado, sem IP) para o app ao vivo, com chave de
+acesso, TLS da CA do projeto e a porta 443 liberada só para IPs cadastrados. Desenho em
+`docs/superpowers/specs/2026-11-07-aplicativo-ao-vivo-design.md`.
+
+**1. No seu PC (uma vez):**
+
+```bash
+uv run honeyant-chave-app                      # guarde a chave; copie a linha HONEYANT_RESUMO_CHAVE_HASH='...'
+uv run honeyant-certificados --ip <IP>         # CA em ~/.honeyant/ca (fica só no PC) + infra/certs-resumo/ (90 dias)
+scp -i <CHAVE> -r infra/certs-resumo <USUARIO>@<IP>:~/arapuca-honeyant/infra/
+```
+
+A **chave privada da CA** (`~/.honeyant/ca/ca.key`) nunca sai do seu PC. Para a EC2 vão só
+`servidor.crt` e `servidor.key`.
+
+**2. Security Group:** regra de **entrada TCP 443** só para os IPs cadastrados (a equipe;
+no dia da apresentação, a rede da banca). Nunca `0.0.0.0/0`. Para a internet, a isca continua
+mostrando só 23 e 1883.
+
+**3. Janela de saída** (seção 4) aberta, na instância:
+
+```bash
+cd ~/arapuca-honeyant
+git switch main && git pull --ff-only
+
+# Hash da chave: cole a linha do passo 1, com as aspas simples (o Compose interpreta "$").
+cat > infra/resumo-api.env <<'EOF'
+HONEYANT_RESUMO_CHAVE_HASH='cole-aqui-o-hash-scrypt'
+EOF
+
+sudo chown 10002:10001 infra/resumo-api.env infra/certs-resumo/servidor.key infra/certs-resumo/servidor.crt
+sudo chmod 600 infra/resumo-api.env infra/certs-resumo/servidor.key
+sudo chmod 644 infra/certs-resumo/servidor.crt
+ls -l infra/resumo-api.env infra/certs-resumo/   # dono 10002; .env e .key com -rw-------
+
+docker compose -f infra/compose.cloud.yml build isca
+docker compose -f infra/compose.cloud.yml up -d resumo-api
+docker compose -f infra/compose.cloud.yml logs resumo-api | tail -3   # {"acao": "resumo-api iniciado", ...}
+docker image prune -f
+```
+
+Feche a janela (seção 4) e confira o `curl` de saída (seção 6).
+
+**4. Conferências:**
+
+```bash
+docker stats --no-stream   # isca abaixo de 256 MiB e resumo-api abaixo de 128 MiB
+```
+
+Do seu PC (com o IP liberado na 443), com o `curl` conferindo a CA do projeto:
+
+```bash
+curl --cacert ~/.honeyant/ca/ca.crt -H "Authorization: Bearer <chave>" https://<IP>/api/v1/resumo   # 200 e JSON
+curl --cacert ~/.honeyant/ca/ca.crt https://<IP>/api/v1/resumo -o /dev/null -w "%{http_code}\n"      # 401
+curl --cacert ~/.honeyant/ca/ca.crt https://<IP>/ -o /dev/null -w "%{http_code}\n"                   # 404
+```
+
+Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
+
+**5. Renovação (a cada 90 dias):** no PC, `uv run honeyant-certificados --ip <IP>` (a CA é a
+mesma; nenhum app precisa ser refeito), `scp` da pasta, os mesmos `chown`/`chmod` e
+`docker compose -f infra/compose.cloud.yml restart resumo-api`. Não precisa de janela de saída.
+
+**Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env`, `restart
+resumo-api` e a chave nova para cada pessoa.
+
 ## 8. Acompanhamento e encerramento
 
 - No dia seguinte ao deploy, em **Billing → Cost Explorer**, confirmar que o gasto diário está dentro do previsto (R$ 20–50 até a apresentação), incluindo o IPv4 público.

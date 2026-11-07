@@ -101,6 +101,19 @@ def test_chave_app_imprime_chave_e_hash_que_confere(capsys, relogio):
     linhas = [linha for linha in capsys.readouterr().out.splitlines() if linha.strip()]
     chave = next(linha.split(":", 1)[1].strip() for linha in linhas if linha.startswith("Chave"))
     hash_linha = next(linha for linha in linhas if linha.startswith("HONEYANT_RESUMO_CHAVE_HASH="))
-    hash_salvo = hash_linha.split("=", 1)[1]
+    hash_salvo = hash_linha.split("=", 1)[1].strip("'")  # o compose remove as aspas
     assert len(chave) >= 40
     assert ControleDeAcesso(hash_salvo, relogio=relogio).verificar(IP, f"Bearer {chave}") == "ok"
+
+
+def test_linha_do_env_vem_entre_aspas_simples(capsys):
+    """O Docker Compose interpreta "$" no env_file: sem aspas simples, o hash chega
+    corrompido na EC2 (conferido em 07/11 com o compose real)."""
+    chave_app.main()
+    linha = next(
+        linha
+        for linha in capsys.readouterr().out.splitlines()
+        if linha.startswith("HONEYANT_RESUMO_CHAVE_HASH=")
+    )
+    valor = linha.split("=", 1)[1]
+    assert valor.startswith("'scrypt$") and valor.endswith("'")

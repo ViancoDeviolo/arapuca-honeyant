@@ -37,3 +37,12 @@ infra/teste-captura/capturas/
 # Twin: senhas, certificados e .env gerados localmente; capturas brutas de trabalho
 infra/twin/gerado/
 infra/twin/capturas/
+
+# App ao vivo: chave e certificados do resumo-api, URL do build e saídas do PyInstaller
+infra/resumo-api.env
+infra/certs-resumo/
+infra/app/app-local.json
+build/
+build-app/
+dist/
+*.spec
