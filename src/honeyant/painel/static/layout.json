@@ -1,0 +1,13 @@
+{
+  "internet->camera": [[420, 80], [290, 110]],
+  "internet->roteador": [[590, 70], [700, 95]],
+  "camera->broker": [[230, 330], [350, 440]],
+  "roteador->broker": [[630, 180], [470, 290]],
+  "roteador->lampada": [[730, 230], [650, 250]],
+  "roteador->tomada": [[810, 225], [790, 285]],
+  "roteador->termostato": [[850, 175], [905, 240]],
+  "lampada->broker": [[600, 385], [535, 440]],
+  "tomada->broker": [[765, 415], [590, 455]],
+  "termostato->broker": [[905, 440], [640, 520]],
+  "broker->fechadura": [[425, 495], [495, 525]]
+}

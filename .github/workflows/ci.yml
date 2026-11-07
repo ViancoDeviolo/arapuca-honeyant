@@ -26,6 +26,11 @@ jobs:
         run: uv run bandit -c pyproject.toml -r src
       - name: Testes
         run: uv run pytest -m "not integration" -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Testes JS (funções puras do painel)
+        run: node --test tests/js/
 
   seguranca:
     runs-on: ubuntu-latest

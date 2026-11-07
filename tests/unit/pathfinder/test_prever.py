@@ -9,7 +9,7 @@ from honeyant.core.evidencia import EvidenciaDeRede, Fonte
 from honeyant.core.resumo import ResumoDeAmeaca
 from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.dijkstra import Dijkstra
-from honeyant.pathfinder.prever import ColetorDeSnapshots, prever_rota
+from honeyant.pathfinder.prever import ColetorDeSnapshots, analisar_rota, prever_rota
 
 DEMO = Path(__file__).parents[3] / "docs" / "demo"
 PELA_CAMERA = ["internet", "camera", "broker", "fechadura"]
@@ -69,3 +69,30 @@ def test_sem_caminho_ate_a_fechadura_devolve_none():
     bloqueadas = evid("inseguro") + bloqueios
     assert prever_rota(p, bloqueadas, resumo(), ACO()) is None
     assert prever_rota(p, bloqueadas, resumo(), Dijkstra()) is None
+
+
+def test_analise_inseguro_sem_bloqueio_e_riscos_em_todas_as_arestas():
+    a = analisar_rota(perfil("inseguro"), evid("inseguro"), resumo())
+    assert a.bloqueadas == []
+    assert len(a.riscos) == 11
+    assert all(0 <= r <= 1 for r in a.riscos.values())
+    assert a.rota.nos == PELA_CAMERA
+    assert a.rota.algoritmo == "dijkstra"
+
+
+def test_analise_seguro_bloqueia_camera_broker():
+    a = analisar_rota(perfil("seguro"), evid("seguro"), resumo())
+    assert a.bloqueadas == ["camera->broker"]
+    assert "camera->broker" not in a.riscos
+    assert a.rota.nos == PELO_ROTEADOR
+
+
+@pytest.mark.parametrize("tipo", ["inseguro", "seguro"])
+def test_aco_termina_na_rota_do_dijkstra(tipo):
+    coletor = ColetorDeSnapshots()
+    aco = ACO(ParametrosACO(semente=42), observadores=[coletor])
+    prever_rota(perfil(tipo), evid(tipo), resumo(), aco)
+    assert (
+        coletor.snapshots[-1].melhor.nos
+        == analisar_rota(perfil(tipo), evid(tipo), resumo()).rota.nos
+    )

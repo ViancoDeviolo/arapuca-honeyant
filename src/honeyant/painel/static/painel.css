@@ -1,0 +1,260 @@
+/* Painel HoneyAnt: tema escuro e sóbrio; o único ponto ousado é o corte do solo. */
+
+:root {
+  --fundo: #191b1f;
+  --superficie: #23262b;
+  --superficie-2: #2c3036;
+  --linha: #3a3f47;
+  --texto: #ebe6dc;
+  --texto-2: #b3ada3;
+  --ambar: #e0a33a;
+  --ambar-escuro: #3a2a0e;
+  --violeta: #a48cf2;
+  --verde-azulado: #4fb3a3;
+  --terra-clara: #a68a6d;
+  --raio: 10px;
+  --raio-pequeno: 6px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  padding: 18px 24px 24px;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+h1, h2, p { margin: 0; }
+
+/* Cabeçalho */
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.marca h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.subtitulo { color: var(--texto-2); font-size: 14px; }
+.estado { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.atualizado { color: var(--texto-2); font-size: 14px; }
+
+.selo {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 6px 16px 6px 34px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  position: relative;
+}
+.selo::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.selo-vulneravel { color: var(--ambar); background: var(--ambar-escuro); }
+.selo-protegida { color: var(--verde-azulado); background: #0f2a26; }
+.selo-protegida::before { border-radius: 2px; }
+
+/* Controles */
+.controles {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 16px 0 14px;
+}
+
+.botao {
+  font: inherit;
+  font-weight: 600;
+  border-radius: var(--raio-pequeno);
+  padding: 9px 18px;
+  border: 1px solid var(--linha);
+  background: var(--superficie-2);
+  color: var(--texto);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.botao:hover:not(:disabled) { border-color: var(--texto-2); }
+.botao:disabled { opacity: 0.45; cursor: not-allowed; }
+.botao-primario { background: var(--ambar); border-color: var(--ambar); color: #1d1405; }
+.botao-primario:hover:not(:disabled) { background: #eab354; border-color: #eab354; }
+.botao:active:not(:disabled) { transform: translateY(1px); }
+.botao-primario:active:not(:disabled) { background: #c98d27; border-color: #c98d27; }
+
+:focus-visible { outline: 3px solid var(--ambar); outline-offset: 2px; }
+
+.velocidade {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.velocidade legend { float: left; margin-right: 10px; color: var(--texto-2); font-size: 14px; }
+.segmentos {
+  display: inline-flex;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-pequeno);
+  overflow: hidden;
+}
+.segmentos input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.segmentos label {
+  padding: 7px 12px;
+  font-size: 14px;
+  color: var(--texto-2);
+  cursor: pointer;
+  border-left: 1px solid var(--linha);
+}
+.segmentos label:first-of-type { border-left: 0; }
+.segmentos input:checked + label { background: var(--superficie-2); color: var(--texto); font-weight: 600; }
+.segmentos input:focus-visible + label { outline: 3px solid var(--ambar); outline-offset: -3px; }
+
+.status { color: var(--texto-2); font-size: 14px; min-width: 0; flex: 1 1 260px; }
+
+/* Área principal */
+.principal {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.cena {
+  margin: 0;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  overflow: hidden;
+  perspective: 1400px;
+  --inclinar-x: 0deg;
+  --inclinar-y: 0deg;
+}
+/* O solo é desenhado além do viewBox: com a altura limitada, as laterais continuam a cena. */
+.corte { overflow: hidden; background: #2f2620; }
+#formigueiro {
+  display: block;
+  overflow: visible;
+  margin-inline: auto;
+  width: 100%;
+  height: auto;
+  /* Cabe com a legenda em 1366×768: cabeçalho + controles + legenda ≈ 240 px. */
+  max-height: calc(100vh - 250px);
+  min-height: 320px;
+  transform: rotateX(var(--inclinar-x)) rotateY(var(--inclinar-y));
+  transition: transform 0.3s ease-out;
+}
+
+/* Solo */
+.linha-do-solo { fill: none; stroke: #9a8064; stroke-width: 2.5; }
+
+/* Túneis */
+.tunel-corpo,
+.tunel-miolo {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-width 0.35s ease-out, opacity 0.35s ease-out, stroke 0.35s;
+}
+.tunel-corpo { stroke: #17110d; stroke-width: 11px; }
+.tunel-miolo { stroke: var(--terra-clara); stroke-width: 4px; opacity: 0.3; }
+.rota .tunel-miolo { stroke: var(--ambar); opacity: 1 !important; filter: url(#f-brilho); }
+.rota .tunel-corpo { stroke: #2b1c06; }
+.bloqueado .tunel-miolo {
+  stroke: #7d766e;
+  stroke-dasharray: 7 9;
+  opacity: 0.7 !important;
+  stroke-width: 4px !important;
+}
+.bloqueado .tunel-corpo { stroke-width: 11px !important; }
+.cadeado { display: none; color: #ddd6cb; }
+.bloqueado .cadeado { display: inline; }
+.chevron { fill: none; stroke: #2b1c06; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Câmaras */
+.camara-borda { fill: none; stroke: rgba(255, 228, 196, 0.28); stroke-width: 2; stroke-linecap: round; }
+.camara-icone { color: #d8cdbd; }
+.camara-nome { fill: var(--texto); font-size: 14px; font-weight: 600; }
+.camara-alvo .camara-anel { fill: none; stroke: var(--ambar); stroke-width: 2; }
+.camara-alvo .camara-cavidade { stroke: var(--ambar); stroke-width: 1.5; }
+.camara-alvo .camara-icone { color: var(--ambar); }
+.camara-origem .camara-cavidade { stroke: #6f7d97; stroke-width: 1.5; }
+
+/* Formigas */
+.formiga-aco { fill: #ecdfc6; }
+.formiga-ataque { fill: var(--violeta); stroke: #f4efff; stroke-width: 1; }
+
+/* Legenda */
+.legenda { padding: 10px 14px 12px; border-top: 1px solid var(--linha); }
+.legenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.legenda li { display: flex; align-items: center; gap: 8px; }
+.amostra { width: 40px; height: 16px; flex: none; }
+.amostra-tunel { fill: none; stroke: var(--terra-clara); stroke-width: 5; stroke-linecap: round; }
+.amostra-rota { fill: none; stroke: var(--ambar); stroke-width: 5; stroke-linecap: round; }
+.amostra-chevron { fill: none; stroke: #2b1c06; stroke-width: 2; }
+.amostra-bloqueado { fill: none; stroke: #7d766e; stroke-width: 4; stroke-dasharray: 5 5; }
+.amostra-cadeado { color: #ddd6cb; }
+
+/* Lateral */
+.lateral { display: grid; gap: 14px; }
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 14px 16px 16px;
+}
+.cartao h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.passos { margin: 0 0 10px; padding-left: 22px; display: grid; gap: 4px; }
+.passos li::marker { color: var(--texto-2); }
+.passo-fraco { color: var(--ambar); font-weight: 700; }
+.ponto-fraco { color: var(--texto-2); font-size: 14px; }
+
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Notebook pequeno, projetor 1024×768 ou zoom de 125%: o lateral desce para baixo da cena. */
+@media (max-width: 1180px) {
+  .principal { grid-template-columns: minmax(0, 1fr); }
+  .lateral { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  body { padding: 12px 16px 16px; }
+  .controles { gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  #formigueiro { transform: none; }
+}
