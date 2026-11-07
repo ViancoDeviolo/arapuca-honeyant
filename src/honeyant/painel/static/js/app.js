@@ -4,6 +4,7 @@
 import { aceitarSnapshot } from "./estado.js";
 import { criarCena } from "./cena.js";
 import { formatarComparativo } from "./comparativo.js";
+import { maiores, nivelDeRisco, ROTULO_NIVEL, sortearServico } from "./risco.js";
 
 const $ = (id) => document.getElementById(id);
 const SESSAO_EXPIRADA = "Sessão expirada. Entre de novo.";
@@ -37,6 +38,115 @@ function mostrarOrigem(resumo) {
     resumo.origem === "real"
       ? `Ataques reais, congelados em ${dataCurta(resumo.resumo.gerado_em)}`
       : "Dados de exemplo";
+}
+
+const NS_SVG = "http://www.w3.org/2000/svg";
+const NOME_SERVICO = { telnet: "Telnet", mqtt: "MQTT", http: "HTTP", upnp: "UPnP", lan: "LAN" };
+const INTERVALO_ATAQUE_MS = 2000;
+const NIVEIS = ["baixo", "medio", "alto", "critico"];
+let nomesDePais = null;
+try {
+  nomesDePais = new Intl.DisplayNames(["pt-BR"], { type: "region" });
+} catch {
+  nomesDePais = null;
+}
+
+function nomeDoPais(codigo) {
+  if (codigo === "ZZ") return "Desconhecido";
+  try {
+    return nomesDePais?.of(codigo) ?? codigo;
+  } catch {
+    return codigo;
+  }
+}
+
+function itemComQuantidade(texto, quantidade) {
+  const li = document.createElement("li");
+  li.append(`${texto} `);
+  const qtd = document.createElement("span");
+  qtd.className = "qtd";
+  qtd.textContent = `(${quantidade})`;
+  li.appendChild(qtd);
+  return li;
+}
+
+// Cartão "Ataques reais (24 h)". Senhas e países vêm da isca: só entram por textContent.
+function mostrarAtaques(resumoComOrigem) {
+  const r = resumoComOrigem.resumo;
+  const real = resumoComOrigem.origem === "real";
+  $("ataques-origem").textContent = real
+    ? `Ataques reais, congelados em ${dataCurta(r.gerado_em)}`
+    : "Dados de exemplo";
+  const servicos = $("ataques-servicos");
+  const senhas = $("ataques-senhas");
+  const paises = $("ataques-paises");
+  for (const lista of [servicos, senhas, paises]) lista.replaceChildren();
+  if (r.total_eventos === 0) {
+    $("ataques-total").textContent = "0";
+    $("ataques-total-rotulo").textContent = "nenhum ataque nas últimas 24 h";
+    return;
+  }
+  $("ataques-total").textContent = new Intl.NumberFormat("pt-BR").format(r.total_eventos);
+  $("ataques-total-rotulo").textContent = "tentativas de invasão";
+  const maior = Math.max(...Object.values(r.por_servico));
+  for (const [servico, n] of maiores(r.por_servico, 5)) {
+    const li = document.createElement("li");
+    const nome = document.createElement("span");
+    nome.textContent = NOME_SERVICO[servico] ?? servico;
+    const trilho = document.createElement("span");
+    trilho.className = "trilho-barra";
+    const barra = document.createElement("span");
+    barra.className = "barra";
+    barra.style.width = `${(100 * n) / maior}%`;
+    trilho.appendChild(barra);
+    const numero = document.createElement("span");
+    numero.className = "numero";
+    numero.textContent = String(n);
+    li.append(nome, trilho, numero);
+    servicos.appendChild(li);
+  }
+  for (const c of r.top_credenciais.slice(0, 5)) {
+    senhas.appendChild(itemComQuantidade(`${c.usuario ?? "–"} / ${c.senha ?? "–"}`, c.tentativas));
+  }
+  for (const [codigo, n] of maiores(r.por_pais, 5)) {
+    paises.appendChild(itemComQuantidade(nomeDoPais(codigo), n));
+  }
+}
+
+// Cartão "Dispositivos na rede": nível pelo maior risco das ligações de cada um.
+function mostrarDispositivos(casa, analise) {
+  const lista = $("dispositivos");
+  lista.replaceChildren();
+  for (const n of casa.nos) {
+    if (n.id === casa.origem) continue;
+    const nivel = nivelDeRisco(analise.riscos_por_no[n.id] ?? 0);
+    const li = document.createElement("li");
+    const icone = document.createElementNS(NS_SVG, "svg");
+    icone.setAttribute("class", "icone");
+    icone.setAttribute("viewBox", "0 0 24 24");
+    icone.setAttribute("aria-hidden", "true");
+    const uso = document.createElementNS(NS_SVG, "use");
+    uso.setAttribute("href", `/static/icones.svg#${n.tipo}`);
+    icone.appendChild(uso);
+    const nome = document.createElement("span");
+    nome.textContent = n.rotulo;
+    const marca = document.createElement("span");
+    marca.className = `nivel nivel-${nivel}`;
+    const quadros = document.createElement("span");
+    quadros.className = "quadros";
+    quadros.setAttribute("aria-hidden", "true");
+    NIVEIS.forEach((_, i) => {
+      const q = document.createElement("span");
+      if (i <= NIVEIS.indexOf(nivel)) q.className = "cheio";
+      quadros.appendChild(q);
+    });
+    const texto = document.createElement("span");
+    texto.className = "texto-nivel";
+    texto.textContent = `risco ${ROTULO_NIVEL[nivel].toLowerCase()}`;
+    marca.append(quadros, texto);
+    li.append(icone, nome, marca);
+    lista.appendChild(li);
+  }
 }
 
 function pontoFraco(analise) {
@@ -107,13 +217,16 @@ function mostrarComparativo(rotas, rotulos) {
 }
 
 async function iniciar() {
-  const [casaInsegura, rotas, layout, resumo, replays] = await Promise.all([
+  const [casaInsegura, rotas, layout, resumo, replays, sessao] = await Promise.all([
     buscar("/api/v1/casa?perfil=inseguro"),
     buscar("/api/v1/rotas"),
     buscar("/static/layout.json"),
     buscar("/api/v1/resumo"),
     buscar("/api/v1/replay"),
+    buscar("/api/v1/sessao"),
   ]);
+  // Com login ligado, o botão Sair (formulário POST /logout, sem JS) aparece no topo.
+  $("form-sair").hidden = !sessao.login;
   const svg = $("formigueiro");
   let perfil = "inseguro";
   let casa = casaInsegura;
@@ -122,6 +235,8 @@ async function iniciar() {
   let cena = criarCena(svg, casa, layout, { reduzido });
   mostrarOrigem(resumo);
   mostrarComparativo(rotas, rotulos);
+  mostrarAtaques(resumo);
+  mostrarDispositivos(casa, analise);
 
   let fonte = null;
   let atual = null;
@@ -214,6 +329,7 @@ async function iniciar() {
     rotulos = Object.fromEntries(casa.nos.map((n) => [n.id, n.rotulo]));
     analise = rotas[perfil];
     cena = criarCena(svg, casa, layout, { reduzido });
+    mostrarDispositivos(casa, analise);
   }
 
   $("prever").addEventListener("click", () => rodar("prever"));
@@ -250,6 +366,19 @@ async function iniciar() {
   estadoInicial();
   atualizarControles();
   avisar("Pronto. Clique em Prever invasão.");
+
+  // Formigas de ataque: uma a cada 2 s, sorteada na proporção dos ataques do resumo.
+  // O ritmo é fixo (resumo congelado); com o intel ao vivo, sairia uma por ataque novo.
+  if (!reduzido && resumo.resumo.total_eventos > 0) {
+    const origem =
+      resumo.origem === "real" ? `dos ataques congelados em ${dataCurta(resumo.resumo.gerado_em)}` : "dos dados de exemplo";
+    $("ataques-ritmo").textContent =
+      `Formigas de ataque na cena: uma a cada 2 s, na proporção ${origem}.`;
+    setInterval(() => {
+      const servico = sortearServico(resumo.resumo.por_servico);
+      if (servico) cena.soltarAtaque(servico);
+    }, INTERVALO_ATAQUE_MS);
+  }
 
   if (!reduzido) {
     const quadro = (agora) => {

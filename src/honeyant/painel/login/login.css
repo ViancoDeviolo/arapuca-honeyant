@@ -1,15 +1,6 @@
-/* Tema escuro e sóbrio da tela de login. Só classes; contraste AA; tudo funciona pelo teclado. */
-:root {
-  color-scheme: dark;
-  --fundo: #14161a;
-  --superficie: #1d2025;
-  --borda: #3a3f47;
-  --texto: #e8eaed;
-  --texto-suave: #aab0b8;
-  --destaque: #f2b134;
-  --erro: #ff8f8f;
-  font-family: system-ui, sans-serif;
-}
+/* Tela de login. Só classes; contraste AA; tudo funciona pelo teclado. */
+/* As cores vêm de /static/temas.css: o login segue o tema escolhido no painel. */
+.login-pagina { font-family: var(--fonte); }
 
 .login-pagina {
   margin: 0;
@@ -24,7 +15,7 @@
   width: min(22rem, 90vw);
   padding: 1.75rem;
   background: var(--superficie);
-  border: 1px solid var(--borda);
+  border: 1px solid var(--linha);
   border-radius: 0.5rem;
 }
 
@@ -35,7 +26,7 @@
 
 .login__subtitulo {
   margin: 0 0 1.25rem;
-  color: var(--texto-suave);
+  color: var(--texto-2);
 }
 
 .login__form {
@@ -48,7 +39,7 @@
   font: inherit;
   color: var(--texto);
   background: var(--fundo);
-  border: 1px solid var(--borda);
+  border: 1px solid var(--linha);
   border-radius: 0.35rem;
 }
 
@@ -57,8 +48,8 @@
   padding: 0.6rem 1rem;
   font: inherit;
   font-weight: 600;
-  color: var(--fundo);
-  background: var(--destaque);
+  color: var(--destaque-tinta);
+  background: var(--ambar);
   border: 0;
   border-radius: 0.35rem;
   cursor: pointer;
@@ -66,7 +57,7 @@
 
 .login__entrada:focus-visible,
 .login__botao:focus-visible {
-  outline: 3px solid var(--texto);
+  outline: 3px solid var(--ambar);
   outline-offset: 2px;
 }
 

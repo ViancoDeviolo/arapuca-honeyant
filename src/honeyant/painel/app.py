@@ -97,6 +97,13 @@ def criar_app(
     def ver_replay() -> dict[TipoDePerfil, bool]:
         return {t: fonte.replay(t) is not None for t in TipoDePerfil}
 
+    tem_login = bool(encaixe.routers)
+
+    @api.get("/sessao")
+    def ver_sessao() -> dict[str, bool]:
+        """Diz à página se há login, para ela mostrar o botão Sair (só chega aqui logado)."""
+        return {"login": tem_login}
+
     @api.get("/formigueiro/stream")
     async def formigueiro(
         request: Request,

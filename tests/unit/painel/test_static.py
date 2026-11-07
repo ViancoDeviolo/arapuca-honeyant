@@ -56,6 +56,22 @@ def test_html_sem_inline():
     assert c.estilos_inline == 0
 
 
+def test_login_sem_inline_e_com_os_temas_do_painel():
+    texto = (STATIC.parent / "login" / "login.html").read_text(encoding="utf-8")
+    c = _Coletor()
+    c.feed(texto)
+    assert c.scripts and all(s.get("src") for s in c.scripts)
+    assert c.atributos_on == []
+    assert c.estilos_inline == 0
+    assert 'href="/static/temas.css"' in texto
+    assert 'src="/static/js/tema.js"' in texto
+
+
+def test_botao_sair_e_formulario_post_sem_js():
+    texto = _html_texto()
+    assert '<form id="form-sair" class="sair" method="post" action="/logout" hidden>' in texto
+
+
 def test_arquivos_antigos_removidos():
     assert not (STATIC / "formigueiro.js").exists()
     assert not (STATIC / "formigueiro.css").exists()
@@ -104,9 +120,42 @@ def test_rotulo_hostil_sai_como_json():
     assert r.json()["nos"][1]["rotulo"] == XSS
 
 
+def test_senha_hostil_do_resumo_sai_limpa_e_como_json():
+    """Review Focus 3: a senha vem de atacantes; chega limpa e como texto JSON."""
+    import json as _json
+
+    from honeyant.core.resumo import ResumoDeAmeaca
+    from honeyant.painel.modelos import ResumoComOrigem
+
+    dados = _json.loads((DEMO / "resumo-congelado.json").read_text("utf-8"))
+    hostil = XSS + "" + "a" * 100
+    dados["top_credenciais"][0]["senha"] = hostil
+
+    class ResumoFalso:
+        def resumo(self):
+            return ResumoComOrigem(origem="real", resumo=ResumoDeAmeaca.model_validate(dados))
+
+    perfil = PerfilDaCasa.model_validate_json((DEMO / "perfil-inseguro.json").read_text("utf-8"))
+    casas = {TipoDePerfil.INSEGURO: perfil, TipoDePerfil.SEGURO: perfil}
+    r = TestClient(criar_app(casas, None, ResumoFalso()), base_url="http://127.0.0.1").get(
+        "/api/v1/resumo"
+    )
+    assert r.headers["content-type"].startswith("application/json")
+    senha = r.json()["resumo"]["top_credenciais"][0]["senha"]
+    assert "" not in senha
+    assert len(senha) <= 64
+    assert senha.startswith(XSS)  # intacta como texto; o JS só usa textContent
+
+
 @pytest.mark.parametrize(
     "caminho",
-    ["/static/painel.css", "/static/icones.svg", "/static/layout.json", "/static/js/app.js"],
+    [
+        "/static/painel.css",
+        "/static/temas.css",
+        "/static/icones.svg",
+        "/static/layout.json",
+        "/static/js/app.js",
+    ],
 )
 def test_estaticos_servidos(caminho):
     class Nada:
