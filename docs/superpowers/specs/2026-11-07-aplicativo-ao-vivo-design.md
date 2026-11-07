@@ -1,7 +1,7 @@
 # Aplicativo HoneyAnt ao vivo (.exe) — design (spec)
 
 - **Data:** 2026-11-07
-- **Status:** aprovado pelo Lucas em 07/11, com as 7 condições da seção 9
+- **Status:** aprovado pelo Lucas em 07/11, com as 7 condições da seção 9 e os ajustes da seção 11
 - **Prazo:** pronto e estável até **08/11 às 18h**; senão sai do escopo (seção 9, condição 7)
 
 ## 1. Objetivo
@@ -52,8 +52,9 @@ Máquina de quem usa (Windows)                       EC2 (Security Group: 443 s�
 
 - **Comando:** `honeyant-servir-resumo` (em `apps/`), no container `resumo-api` do
   `infra/compose.cloud.yml`, com a imagem da isca.
-- **Container:** usuário `10002:10001`, `read_only`, `tmpfs /tmp`, `cap_drop: [ALL]`,
-  `no-new-privileges`, `mem_limit: 128m`, `pids_limit: 64`, porta `443:8443`.
+- **Container:** o processo roda como `10002:10001` e escuta em **8443** (porta alta: não
+  precisa de root nem de `CAP_NET_BIND_SERVICE`); o compose mapeia `443:8443`. `read_only`,
+  `tmpfs /tmp`, `cap_drop: [ALL]`, `no-new-privileges`, `mem_limit: 128m`, `pids_limit: 64`.
 - **Banco:** `LeitorSqlite` em `mode=ro` (o mesmo arranjo do `verificar-ro`, validado em 06/11).
 - **Rotas:** só `GET /api/v1/resumo`. Qualquer outra rota ou método: `404` com corpo vazio.
   Cabeçalho `Server` genérico (`honeyant`), sem versão.
@@ -67,7 +68,8 @@ Máquina de quem usa (Windows)                       EC2 (Security Group: 443 s�
     durante o bloqueio, `429` sem nem verificar a chave;
   - **sem o hash no ambiente, o serviço recusa subir** (login obrigatório na nuvem).
 - **TLS:** TLS 1.2 ou superior; certificado do servidor emitido pela CA do projeto, com o IP
-  público da EC2 no SAN.
+  elástico da EC2 no SAN e **validade de 90 dias**. A renovação (novo certificado com a mesma
+  CA, `scp` e reinício do `resumo-api`, sem novo `.exe`) fica documentada no DEPLOY.
 - **Logs:** uma linha JSON por requisição (`status`, `rota`, duração); nunca a chave nem o
   cabeçalho `Authorization`.
 
@@ -80,14 +82,13 @@ Máquina de quem usa (Windows)                       EC2 (Security Group: 443 s�
 | Chave privada da **CA** | **Só no PC do Lucas**, `%USERPROFILE%\.honeyant\ca\ca.key`, fora do repositório; nunca vai para a EC2 | `honeyant-certificados` |
 | Certificado público da CA | Embutido no `.exe` (não é segredo) | `honeyant-certificados` |
 | Certificado e chave do servidor | EC2, `~/arapuca-honeyant/infra/certs-resumo/`, dono `10002`, `600` na chave | `honeyant-certificados`, copiados por `scp` |
-| URL da EC2 (com o IP) | `infra/app/app-local.json`, fora do git (`.gitignore`); entra no `.exe` na hora do build | o Lucas |
+| URL da EC2 (com o IP) | **Não é segredo.** Fica em `infra/app/app-local.json`, fora do git por organização, e entra no `.exe` no build | o Lucas |
 
 Nada disso entra em commit. O `.gitignore` cobre `*.key`, `*.pem`, `*.crt`, `.env*` e
 `infra/app/app-local.json`; o gitleaks no CI continua valendo.
 
-Se o IP da EC2 mudar (instância parada sem IP elástico), basta emitir um novo certificado do
-servidor com a mesma CA e trocar a URL no `app-local.json` (novo build). A CA embutida nos
-`.exe` já distribuídos continua valendo.
+A EC2 tem **IP elástico** (associado desde 05/11): o IP não muda ao parar e ligar. O IP não
+é tratado como segredo: as proteções são o Security Group, a chave de acesso e o TLS.
 
 ### 3.3 App: `HoneyAnt.exe`
 
@@ -95,8 +96,10 @@ servidor com a mesma CA e trocar a URL no `app-local.json` (novo build). A CA em
 - **Ao abrir:**
   1. lê `%APPDATA%\HoneyAnt\config.json`; sem chave, pergunta no console
      ("Cole a chave de acesso. Enter para usar só o resumo guardado.") e salva;
-  2. sobe o painel em `127.0.0.1` numa porta livre (só loopback, como o `honeyant-local`);
-  3. abre o navegador padrão nessa URL;
+  2. sobe o painel **só em `127.0.0.1`** (nunca `0.0.0.0`), na porta 8765; se ela estiver
+     ocupada, tenta as 9 seguintes; se todas estiverem ocupadas, mostra "As portas 8765 a 8774
+     estão ocupadas. Feche outro HoneyAnt aberto e tente de novo." e sai;
+  3. abre o navegador padrão nessa URL sozinho;
   4. o console fica aberto com o estado ("Ao vivo", "offline") e "Feche esta janela para
      sair".
 - **Dados embutidos:** `docs/demo/` (perfis, evidências, resumo real mais recente, replays),
@@ -105,7 +108,10 @@ servidor com a mesma CA e trocar a URL no `app-local.json` (novo build). A CA em
 - **Porta `FonteDoResumo` nova:** `FonteDoResumoAoVivo` (adapter em `apps/`), com três
   níveis:
   1. **ao vivo:** `GET <url>/api/v1/resumo` com timeout de 5 s, no máximo uma vez a cada
-     15 s; sucesso grava o cache;
+     15 s; sucesso grava o cache. **Erro de rede:** recuo exponencial (15 s, 30 s, 60 s…, teto
+     de 5 min), que volta a 15 s no primeiro sucesso. **401:** o app **para de consultar**
+     até ser reaberto e mostra "chave de acesso inválida"; assim ele nunca chega aos 5 erros
+     que bloqueiam o IP;
   2. **cache:** `%APPDATA%\HoneyAnt\ultimo-resumo.json`, o último resumo ao vivo recebido;
   3. **embutido:** o `resumo-real-*.json` mais recente que veio no `.exe`.
   Uma falha nunca bloqueia a página: o painel responde na hora com o nível disponível.
@@ -134,10 +140,10 @@ servidor com a mesma CA e trocar a URL no `app-local.json` (novo build). A CA em
   projeto.
 - `--onefile --console --name HoneyAnt`, com `--add-data` para `docs/demo`, os estáticos do
   painel e a CA, e o `app-local.json` (URL).
-- Script: `infra/app/construir.ps1`. Saída: `dist/HoneyAnt.exe` (fora do git).
+- Script: `infra/app/construir.ps1`. Saída: `dist/HoneyAnt.exe`. `build/`, `dist/` e `*.spec`
+  ficam no `.gitignore`.
 - Distribuição: por link direto (Drive ou WhatsApp), só para a equipe e a banca. O `.exe`
-  carrega o IP da EC2, então **nunca** vai para o repositório público nem para uma Release
-  pública do GitHub.
+  **nunca** vai para o repositório nem para Releases do GitHub.
 
 **Defender e SmartScreen:** um `.exe` sem assinatura baixado da internet recebe a marca
 "veio da internet" e o SmartScreen mostra "O Windows protegeu o computador" → "Mais
@@ -147,12 +153,12 @@ informações" → "Executar assim mesmo". O teste da seção 7 cobre isso de pr
 
 | Situação | Comportamento |
 |---|---|
-| EC2 fora do ar, IP não liberado, rede da faculdade bloqueando | Timeout de 5 s → cache → embutido; cabeçalho "offline"; nova tentativa em 15 s |
-| Chave errada (401) | Mensagem no console: "chave recusada: confira com o Lucas"; segue offline; não repete mais de uma vez por minuto |
+| EC2 fora do ar, IP não liberado, rede da faculdade bloqueando | Timeout de 5 s → cache → embutido; cabeçalho "offline"; nova tentativa com recuo exponencial (teto de 5 min) |
+| Chave errada (401) | Para de consultar até o app ser reaberto; cache ou embutido; cabeçalho e console mostram "chave de acesso inválida" |
 | Bloqueado por tentativas (429) | Segue offline; console avisa que tente de novo em 15 min |
 | Certificado de outra CA ou de outro IP | Recusa a conexão (nunca aceita); segue offline; console: "certificado não confere" |
 | Resposta inválida (não valida no contrato) | Descarta; segue com o nível anterior |
-| Porta local ocupada | Escolhe outra porta livre |
+| Porta local ocupada | Tenta 8765 a 8774; todas ocupadas → mensagem clara e sai |
 | `config.json` corrompido | Pergunta a chave de novo |
 
 ## 6. Segurança (resumo)
@@ -173,7 +179,10 @@ informações" → "Executar assim mesmo". O teste da seção 7 cobre isso de pr
   método desconhecido → 404 vazio; cache de 15 s; o `main()` sem o hash falha ao subir.
 - `FonteDoResumoAoVivo`: sucesso grava o cache; falha de rede → cache com origem
   `"offline"`; sem cache → embutido; timeout não trava (servidor que nunca responde);
-  401 e resposta inválida tratados.
+  **depois de um 401 nenhuma requisição nova** (o servidor de teste conta as chamadas);
+  **recuo exponencial** com teto (relógio injetado); resposta inválida descartada.
+- App: o servidor faz bind **só em `127.0.0.1`**; porta ocupada → próxima; todas ocupadas →
+  mensagem clara.
 - **TLS de verdade** (certificados gerados no teste com `openssl`; o CI tem; pula se não
   houver): CA certa + IP certo → conecta; **certificado emitido para outro IP → recusa**;
   certificado de outra CA → recusa; servidor só com TLS 1.1 → recusa.
@@ -225,3 +234,27 @@ informações" → "Executar assim mesmo". O teste da seção 7 cobre isso de pr
 | IP da EC2 muda | Novo certificado do servidor com a mesma CA + nova URL no build |
 | Memória da t3.micro | `mem_limit: 128m` no `resumo-api`; `docker stats` depois do deploy |
 | Prazo | Condição 7: o `.exe` sai do escopo se não estiver estável até as 18h |
+
+## 11. Ajustes do Lucas na aprovação (07/11)
+
+1. Depois de um 401, o app para de consultar, cai para o cache e mostra "chave de acesso
+   inválida"; erro de rede usa recuo exponencial com teto; testes para os dois (seções 3.3,
+   5 e 7).
+2. O IP da EC2 não é segredo (seção 3.2). A EC2 tem IP elástico.
+3. Certificado do servidor com 90 dias e renovação no DEPLOY (seção 3.1).
+4. `resumo-api` como `10002` em 8443, compose `443:8443`, sem root nem capabilities extras
+   (seção 3.1).
+5. Painel do app só em `127.0.0.1`, porta ocupada com mensagem clara, navegador abre sozinho,
+   teste do bind (seções 3.3 e 7).
+6. `build/`, `dist/` e `*.spec` no `.gitignore`; o `.exe` nunca vai para o repositório nem para
+   Releases.
+7. Dívida técnica: a chave de acesso fica em `%APPDATA%` em texto; no futuro, proteger com
+   DPAPI.
+
+## 12. Ordem de implementação
+
+1. `resumo-api` + deploy na EC2 (evidência de cloud primeiro);
+2. cliente HTTPS com cache e fallback, e o painel ao vivo;
+3. empacotamento com PyInstaller e roteiro do Defender/SmartScreen.
+
+Se o tempo acabar, o item 3 é o primeiro a sair (condição 7).
