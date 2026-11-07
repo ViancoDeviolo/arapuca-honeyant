@@ -101,8 +101,25 @@
       </figcaption>
     </figure>
 
-    <aside id="lateral" class="lateral" aria-label="Detalhes da rota">
+    <aside id="lateral" class="lateral" aria-label="Ataques, rota e dispositivos">
       <p id="nota-mitigacao" class="nota-mitigacao" hidden>Simulação do perfil mitigado. A mitigação real e as capturas estão em <code>docs/capturas/</code>.</p>
+      <section class="cartao" aria-labelledby="titulo-ataques">
+        <h2 id="titulo-ataques">Ataques reais (24 h)</h2>
+        <p id="ataques-origem" class="cartao-origem"></p>
+        <p class="ataques-total"><strong id="ataques-total">–</strong> <span id="ataques-total-rotulo">tentativas de invasão</span></p>
+        <ul id="ataques-servicos" class="barras"></ul>
+        <div class="listas-ataque">
+          <div>
+            <h3>Senhas mais tentadas</h3>
+            <ol id="ataques-senhas" class="lista-curta"></ol>
+          </div>
+          <div>
+            <h3>Países</h3>
+            <ol id="ataques-paises" class="lista-curta"></ol>
+          </div>
+        </div>
+        <p id="ataques-ritmo" class="nota-ritmo"></p>
+      </section>
       <section class="cartao">
         <h2>Rota prevista</h2>
         <ol id="passos" class="passos"></ol>
@@ -120,6 +137,10 @@
           <p class="trajeto-cabeca"><strong>Com a mitigação<span id="na-tela-depois" class="so-leitor"></span></strong><span id="custo-depois"></span></p>
           <ol id="linha-depois" class="linha-metro"></ol>
         </div>
+      </section>
+      <section class="cartao" aria-labelledby="titulo-dispositivos">
+        <h2 id="titulo-dispositivos">Dispositivos na rede</h2>
+        <ul id="dispositivos" class="dispositivos"></ul>
       </section>
     </aside>
   </main>

@@ -19,6 +19,14 @@ const DESMORONAMENTO_MS = 1200;
 const FIM_PISCA = 0.25;
 const FIM_ABERTURA = 0.85;
 const LADO_ENTULHO = 4;
+const LADO_ATAQUE = 9;
+const MAX_ATAQUES = 6;
+// Alvo típico de cada serviço atacado na isca: Telnet procura câmeras (botnets do tipo
+// Mirai); MQTT procura o broker, passando pelo roteador.
+const CAMINHO_DO_ATAQUE = {
+  telnet: ["internet", "camera"],
+  mqtt: ["internet", "roteador", "broker"],
+};
 
 // Com "reduzir movimento", nenhuma formiga anda e o desmoronamento vai direto ao fim.
 export function planoDeAnimacao(reduzido) {
@@ -103,6 +111,7 @@ export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
 
   let execucao = null;
   let formigas = [];
+  let ataques = [];
   let setas = [];
   let ultimoQuadro = null;
 
@@ -189,6 +198,19 @@ export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
       }
       posicionar(f.g, f.passos[f.passo], f.distancia, true);
     }
+    ataques = ataques.filter((a) => {
+      a.distancia += avanco * 0.8;
+      while (a.distancia > a.passos[a.passo].comprimento) {
+        a.distancia -= a.passos[a.passo].comprimento;
+        a.passo += 1;
+        if (a.passo >= a.passos.length) {
+          a.g.remove(); // chegou ao alvo
+          return false;
+        }
+      }
+      posicionar(a.g, a.passos[a.passo], a.distancia, true);
+      return true;
+    });
     const ciclo = (agora / 1600) % 1;
     for (const s of setas) {
       const t = (s.fase + ciclo / SETAS_POR_TUNEL) % 1;
@@ -275,5 +297,18 @@ export function criarCena(svg, casa, layout, { reduzido = false } = {}) {
     });
   }
 
-  return { aplicar, animar, limpar, desmoronar, tuneis };
+  // Formiga de ataque real (spec 4.5): quadrado vermelho de 9 px com contorno claro,
+  // que entra pela internet. Desligada com "reduzir movimento".
+  function soltarAtaque(servico) {
+    if (!plano.formigas || ataques.length >= MAX_ATAQUES) return false;
+    const passos = passosDe(CAMINHO_DO_ATAQUE[servico] ?? CAMINHO_DO_ATAQUE.telnet);
+    if (!passos) return false;
+    const l = LADO_ATAQUE;
+    const g = el("rect", { x: -l / 2, y: -l / 2, width: l, height: l, class: "formiga formiga-ataque" }, gFormigas);
+    posicionar(g, passos[0], 0, true);
+    ataques.push({ g, passos, passo: 0, distancia: 0 });
+    return true;
+  }
+
+  return { aplicar, animar, limpar, desmoronar, soltarAtaque, tuneis };
 }

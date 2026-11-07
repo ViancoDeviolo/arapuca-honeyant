@@ -120,6 +120,33 @@ def test_rotulo_hostil_sai_como_json():
     assert r.json()["nos"][1]["rotulo"] == XSS
 
 
+def test_senha_hostil_do_resumo_sai_limpa_e_como_json():
+    """Review Focus 3: a senha vem de atacantes; chega limpa e como texto JSON."""
+    import json as _json
+
+    from honeyant.core.resumo import ResumoDeAmeaca
+    from honeyant.painel.modelos import ResumoComOrigem
+
+    dados = _json.loads((DEMO / "resumo-congelado.json").read_text("utf-8"))
+    hostil = XSS + "" + "a" * 100
+    dados["top_credenciais"][0]["senha"] = hostil
+
+    class ResumoFalso:
+        def resumo(self):
+            return ResumoComOrigem(origem="real", resumo=ResumoDeAmeaca.model_validate(dados))
+
+    perfil = PerfilDaCasa.model_validate_json((DEMO / "perfil-inseguro.json").read_text("utf-8"))
+    casas = {TipoDePerfil.INSEGURO: perfil, TipoDePerfil.SEGURO: perfil}
+    r = TestClient(criar_app(casas, None, ResumoFalso()), base_url="http://127.0.0.1").get(
+        "/api/v1/resumo"
+    )
+    assert r.headers["content-type"].startswith("application/json")
+    senha = r.json()["resumo"]["top_credenciais"][0]["senha"]
+    assert "" not in senha
+    assert len(senha) <= 64
+    assert senha.startswith(XSS)  # intacta como texto; o JS só usa textContent
+
+
 @pytest.mark.parametrize(
     "caminho",
     [
