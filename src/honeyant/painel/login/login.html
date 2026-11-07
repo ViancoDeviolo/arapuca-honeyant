@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoneyAnt: entrar</title>
+  <link rel="stylesheet" href="/login/login.css">
+</head>
+<body class="login-pagina">
+  <main class="login">
+    <h1 class="login__titulo">HoneyAnt</h1>
+    <p class="login__subtitulo">Entre para ver o painel.</p>
+    <form class="login__form" method="post" action="/login">
+      <label class="login__rotulo" for="campo-senha">Senha</label>
+      <input id="campo-senha" class="login__entrada" name="senha" type="password"
+             autocomplete="current-password" maxlength="256" required autofocus>
+      <p id="login-erro" class="login__erro" role="alert" hidden></p>
+      <button class="login__botao" type="submit">Entrar</button>
+    </form>
+  </main>
+  <script src="/login/login.js" defer></script>
+</body>
+</html>
