@@ -1,8 +1,8 @@
-# Plano 3 — Painel e Formigueiro 2.5D (entregas 1 a 3)
+# Plano 3 — Painel e Formigueiro em grade (entregas 1 a 3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fazer o painel contar a história da demonstração (ataques reais → formigas → túnel até a fechadura → mitigação → túnel desmorona) num formigueiro 2.5D em SVG, com o ponto de encaixe do login entregue antes para o Gustavo.
+**Goal:** Fazer o painel contar a história da demonstração (ataques reais → formigas → túnel até a fechadura → mitigação → túnel desmorona) numa rede de túneis em grade ortogonal em SVG (spec, seção 4; a cena 2.5D da primeira versão foi substituída em 07/11), com o ponto de encaixe do login entregue antes para o Gustavo.
 
 **Architecture:** O `painel` continua importando só o `core` e recebe tudo por portas (`FonteDoFormigueiro`, `FonteDoResumo`). `apps/local.py` implementa as portas com fixtures, pathfinder e o resumo real exportado da isca. O front é JS puro em módulos ES: funções puras testadas com `node --test` (`estado.js`, `geometria.js`, `comparativo.js`, `risco.js`), mais a cena (`cena.js`) e a ligação (`app.js`).
 
@@ -20,7 +20,7 @@
 - Stream: `perfil` ∈ {inseguro, seguro}; `modo` ∈ {prever, replay}; `velocidade` ∈ [0,25; 4]; `semente` ∈ [0; 2³¹−1]; nenhum parâmetro do ACO vem do cliente; espera `max(0,15, 0,6/velocidade)` s; **o mais novo vence** por IP de cliente.
 - Hosts permitidos no modo local: `("127.0.0.1", "localhost")`; testes usam `base_url="http://127.0.0.1"`.
 - Rota oficial = **Dijkstra**; a cena mostra a exploração do ACO.
-- Geometria fixa: `viewBox="0 0 1000 640"`; câmara = elipse `CAMARA_RX = 56`, `CAMARA_RY = 34`; `FOLGA = 12` (px além da elipse); túnel de 4 a 22 px; até 20 formigas; desmoronamento ~1,2 s; formiga de ataque a cada 2 s.
+- Geometria fixa: `viewBox="0 0 1000 640"`; `GRADE = 10`; entrada = círculo `RAIO_ENTRADA = 22`; `FOLGA = 12`; túnel normal de 4 a 18 px, rota 22 px, fundo 3 px; formigas = quadrados vermelhos de 7 px (ataque: 9 px com contorno claro); até 20 formigas; desmoronamento ~1,2 s; formiga de ataque a cada 2 s.
 - Faixas de risco: < 0,3 baixo; < 0,6 médio; < 0,85 alto; senão crítico.
 - Textos exatos: botão "Aplicar mitigação (perfil seguro)" / "Desfazer mitigação"; nota "Simulação do perfil mitigado. A mitigação real e as capturas estão em `docs/capturas/`."; origem do resumo "Ataques reais, congelados em <data>" / "Dados de exemplo"; selos "Vulnerável" / "Protegida"; sem rota: "nenhuma rota até a fechadura"; 401/403: "Sessão expirada. Entre de novo."
 - **Antes de escrever CSS ou SVG da cena** (Tarefas 5, 7 e 9), carregue a skill `frontend-design:frontend-design` (direção visual) e, ao terminar, a `anthropic-skills:impeccable` (crítica e polimento), dentro da paleta e dos limites da seção 4.6 do spec.
@@ -65,7 +65,7 @@ Os arquivos antigos `static/formigueiro.js` e `static/formigueiro.css` são remo
 
 ---
 
-## Entrega 1 — Página e formigueiro 2.5D
+## Entrega 1 — Página e formigueiro em grade
 
 ### Task 1: Ponto de encaixe do login e TrustedHost (PR para o Gustavo)
 
@@ -203,10 +203,12 @@ def test_stream_termina_com_fim(): ...
     - `estadoDoTunel(chave, snapshot, analise) -> {largura: number, brilho: number, rota: boolean, bloqueado: boolean}`. `largura = 4 + 18 · τ/τ_max` (τ ausente → 4); `brilho = τ/τ_max` (0 se ausente); `bloqueado = analise.bloqueadas.includes(chave)`; `rota` = a aresta está em `analise.rota.nos` (pares consecutivos).
     - `aceitarSnapshot(atual, novo) -> boolean`: aceita se `atual` é nulo ou se `novo.execucao_id === atual.execucao_id`. O front troca a execução corrente ao abrir um stream novo.
   - `geometria.js`:
-    - `curvaDoTunel(origem, destino, layout) -> [[x0, y0], [cx1, cy1], [cx2, cy2], [x1, y1]]`. Os pontos de controle vêm de `layout["a->b"]`; sem entrada, ficam a 1/3 e 2/3 do segmento.
-    - `pontoNaBezier(curva, t) -> [x, y]`.
-    - `invadeCamara(curva, camara, folga = FOLGA, amostras = 64) -> boolean`: verdadeiro se algum ponto amostrado em t ∈ (0,05; 0,95) cai dentro da elipse de semieixos `CAMARA_RX + folga`, `CAMARA_RY + folga`.
-    - Exporta `CAMARA_RX = 56`, `CAMARA_RY = 34`, `FOLGA = 12`.
+    - `caminhoDoTunel(origem, destino, layout) -> [[x, y], ...]`: `[origem, ...layout.tuneis["a->b"], destino]` (sem entrada no layout, ligação direta).
+    - `ehOrtogonal(caminho)`, `naGrade(caminho, grade = GRADE)`, `comprimento(caminho)`, `pontoNoCaminho(caminho, distancia) -> {x, y, dx, dy}` (direção do segmento atual).
+    - `invadeEntrada(caminho, entrada, folga = FOLGA) -> boolean`: algum segmento passa a menos de `RAIO_ENTRADA + folga` do centro.
+    - `sobreposicao(a, b, zonas = []) -> number`: comprimento em que segmentos colineares de `a` e `b` correm juntos, descontando o trecho dentro de `RAIO_ENTRADA + FOLGA` das entradas em `zonas` (pontas comuns).
+    - `caixaDoRotulo(no, lado, texto) -> {x0, y0, x1, y1, x, y, ancora}` (lados: acima, abaixo, esquerda, direita e as quatro diagonais) e `cruzaCaixa(caminho, caixa, meia = 11) -> boolean`.
+    - Exporta `GRADE = 10`, `RAIO_ENTRADA = 22`, `FOLGA = 12`.
   - `layout.json`: um par de pontos de controle por aresta dos perfis (as 11 arestas são as mesmas nos dois), ajustados à mão até o teste de folga passar. O caso que precisa de desvio é `roteador->broker`, que hoje passa sob a lâmpada.
 
 - [ ] **Step 1: Testes que falham** (`node:test` + `node:assert/strict`; os perfis são lidos de `docs/demo/` com `fs`):
@@ -217,7 +219,7 @@ test("aresta bloqueada vira cadeado", ...)           // bloqueadas ["camera->bro
 test("ausente do feromônio sem estar bloqueada não vira cadeado", ...)  // bloqueado false, largura 4
 test("rota destacada", ...)                          // rota internet,camera,broker,fechadura → "camera->broker".rota true; "roteador->broker".rota false
 test("snapshot de outra execução é recusado", ...)   // aceitarSnapshot({execucao_id:"a"},{execucao_id:"b"}) === false
-test("nenhum túnel invade câmara fora dele", ...)    // para cada perfil e aresta: nenhuma câmara que não é ponta → invadeCamara false
+test("túneis ortogonais e na grade", ...); test("nenhum túnel invade entrada fora dele", ...); test("nenhum túnel corre por cima de outro", ...); test("nenhum nome cruza túnel", ...)  // reais e de fundo, dois perfis
 test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → roteador->broker invade "lampada" (prova que o teste morde)
 ```
 
@@ -228,7 +230,7 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
 
 ---
 
-### Task 5: Cena 2.5D e página
+### Task 5: Cena em grade e página
 
 **Files:**
 - Create: `static/js/cena.js`, `static/js/app.js`, `static/painel.css`, `static/icones.svg`
@@ -236,13 +238,13 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
 - Test: `tests/unit/painel/test_static.py` (atualizado)
 
 **Interfaces:**
-- Consumes: `estadoDoTunel`, `aceitarSnapshot`, `curvaDoTunel`, `pontoNaBezier`, constantes (Tarefa 4); API (Tarefa 2).
+- Consumes: `estadoDoTunel`, `aceitarSnapshot`, `caminhoDoTunel`, `pontoNoCaminho`, `caixaDoRotulo`, constantes (Tarefa 4); API (Tarefa 2).
 - Produces:
-  - `cena.js`: `criarCena(svg, casa, layout) -> {aplicar(snapshot, analise), animar(agora), limpar()}`. Desenha as camadas de terra (4 faixas com gradiente e `feTurbulence` aplicado uma vez no fundo), o céu e a linha do solo, as câmaras (elipses com sombra interna, ícone via `<use href="/static/icones.svg#<tipo>">` e nome por `textContent` dentro da elipse), os túneis (dois `<path>` por aresta: corpo e miolo) e até 20 formigas animadas num único laço de `requestAnimationFrame`, com o comprimento de cada caminho em cache.
+  - `cena.js`: `criarCena(svg, casa, layout, {reduzido}) -> {aplicar(snapshot, analise), animar(agora), limpar(analise)}`. Desenha os túneis de fundo (`layout.decoracao`, uma vez), os túneis reais (base + miolo, cantos retos), as entradas (círculo com ícone; internet como meio-círculo na borda; fechadura quadrada com borda dupla), os nomes pelo `caixaDoRotulo`, as setas da rota e até 20 formigas (quadrados vermelhos) num único laço de `requestAnimationFrame`.
   - `app.js`: carrega `/api/v1/casa?perfil=inseguro`, `/api/v1/rotas`, `/static/layout.json`; controles ("Prever invasão", velocidade segmentada de 0,25× a 4×); um `EventSource` por vez (fecha o anterior antes de abrir); `aceitarSnapshot`; `aria-live="polite"` com "Rota prevista: Internet, Câmera, Broker, Fechadura. Ponto fraco: <origem> para <destino>." (ponto fraco = maior valor em `analise.riscos`); 401/403 → "Sessão expirada. Entre de novo."
   - `index.html`: cabeçalho (nome, selo "Vulnerável", espaço para o horário do resumo), barra de controles, `<svg id="formigueiro" viewBox="0 0 1000 640">`, `<aside id="lateral">` (vazio nesta entrega) e a legenda (túnel, formiga do ACO, formiga de ataque, rota prevista, túnel bloqueado, com forma **e** cor). `@media (max-width: 1180px)` coloca o lateral embaixo da cena.
 
-- [ ] **Step 1: Carregar a skill `frontend-design:frontend-design`** e fixar a direção visual dentro da seção 4.6 do spec (grafite, terra dessaturada, âmbar, violeta, verde-azulado, fonte do sistema com `tabular-nums`).
+- [ ] **Step 1: Carregar a skill `frontend-design:frontend-design`** e fixar a direção visual dentro da seção 4.7 do spec (grafite liso, túneis cinza-azulados apagados, formigas vermelhas, âmbar na rota, verde-azulado, fonte do sistema com `tabular-nums`).
 - [ ] **Step 2: Testes que falham** em `test_static.py`:
   - `test_html_sem_inline` (todo `<script>` com `type="module"` e `src`; nenhum `style=`, `<style>` ou `on*`);
   - `test_todos_os_js_sem_api_proibida` (varre `static/js/*.js` contra a lista das Global Constraints);
@@ -254,12 +256,12 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
 - [ ] **Step 5: Rodar e ver passar**: `uv run pytest -m "not integration" -q && node --test tests/js/ && node --check src/honeyant/painel/static/js/*.js` → verde.
 - [ ] **Step 6: Carregar a skill `anthropic-skills:impeccable`** e fazer a passada de crítica e polimento (contraste AA, hierarquia, foco visível, estados dos botões). Aplicar o que couber sem mudar as interfaces.
 - [ ] **Step 7: Verificação visual (Lucas)**: `uv run honeyant-local` → `http://127.0.0.1:8000/`. Conferir:
-  - em 1366×768: a rota pela câmera destacada e contínua, nenhum túnel sobre uma câmara alheia, nenhum rótulo sobre uma linha, formigas andando e o console sem erro de CSP;
+  - em 1366×768: a rota pela câmera destacada e contínua, nenhum túnel sobre uma entrada alheia, nenhum rótulo sobre uma linha, formigas andando e o console sem erro de CSP;
   - em 1024×768 (ou zoom de 125%): sem rolagem horizontal;
   - com "reduzir movimento" do sistema ligado: nada anima.
 
   Prints para o README.
-- [ ] **Step 8: Commit e PR da entrega 1**: `feat(painel): desenha o formigueiro 2.5D e a nova pagina`. Push de `feat/painel-cena` e PR (revisor Kawe).
+- [ ] **Step 8: Commit e PR da entrega 1**: `feat(painel): desenha o formigueiro em grade e a nova pagina`. Push de `feat/painel-cena` e PR (revisor Kawe).
 
 ---
 
@@ -296,7 +298,7 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
   - `comparativo.js`: `formatarComparativo(antes: Rota, depois: Rota | null) -> {titulo: string, razao: number | null}`. Razão = `antes.plausibilidade / depois.plausibilidade`. Se razão ≥ 2: `"<arredondado>× menos plausível"`. Se 1 ≤ razão < 2: `"<round((1 − 1/razão)·100)>% menos plausível"`. Se `depois` é nulo: `"nenhuma rota até a fechadura"` com `razao: null`.
   - `cena.js`:
     - `planoDeAnimacao(reduzido: boolean) -> {formigas: boolean, desmoronamentoMs: number}`, que devolve `{true, 1200}` ou `{false, 0}`;
-    - `desmoronar(chave)`, que faz rachaduras, partículas de terra e o estado bloqueado com cadeado, e remove as formigas daquele túnel.
+    - `desmoronar(chave)`: o túnel pisca, o tracejado se abre das pontas para o meio com entulho em quadradinhos, o cadeado aparece e as formigas daquele túnel somem (spec, 4.6).
   - `app.js`:
     - o botão "Aplicar mitigação (perfil seguro)" ↔ "Desfazer mitigação";
     - ao aplicar: `desmoronar("camera->broker")` → carrega `casa?perfil=seguro` → abre um stream novo → selo "Protegida" → mostra a nota;
@@ -377,7 +379,7 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
   - `risco.js`:
     - `nivelDeRisco(r: number) -> "baixo" | "medio" | "alto" | "critico"` (faixas das Global Constraints);
     - `sortearServico(porServico: object, aleatorio: () => number) -> string`: proporcional, com o gerador injetado para o teste.
-  - `cena.js`: `soltarAtaque(servico)`: formiga violeta, de contorno marcado, que entra pela superfície.
+  - `cena.js`: `soltarAtaque(servico)`: quadrado vermelho de 9 px com contorno claro, que entra pela entrada da internet.
   - `app.js`:
     - **"Ataques reais"**: título com a origem ("Ataques reais, congelados em <data>" ou "Dados de exemplo"); total; barra por serviço; top 5 senhas como `usuario / senha`; top 5 países. Com `total_eventos = 0`: "nenhum ataque nas últimas 24 h";
     - **"Rota prevista"**: os passos numerados e o ponto fraco com ícone **e** texto;
@@ -391,7 +393,7 @@ test("sem layout o teste de folga pega a lâmpada", ...)  // layout {} → rotea
 - [ ] **Step 2: Rodar e ver falhar**: `node --test tests/js/ && uv run pytest tests/unit/painel/test_static.py -q` → FAIL.
 - [ ] **Step 3: Implementar** (carregar `frontend-design` antes dos cartões e `impeccable` no fim).
 - [ ] **Step 4: Rodar e ver passar**: `node --test tests/js/ && uv run pytest -m "not integration" -q` → verde.
-- [ ] **Step 5: Verificação visual (Lucas)**: os cartões com os dados reais, as formigas violeta entrando, a origem dos dados visível e o leitor de tela lendo a rota. Prints para o README e os slides.
+- [ ] **Step 5: Verificação visual (Lucas)**: os cartões com os dados reais, as formigas de ataque entrando, a origem dos dados visível e o leitor de tela lendo a rota. Prints para o README e os slides.
 - [ ] **Step 6: Commit e PR da entrega 3**: `feat(painel): mostra os ataques reais, a rota e os dispositivos no painel lateral`. Push de `feat/painel-isca` e PR (revisores Kawe e Rafael).
 
 ---
