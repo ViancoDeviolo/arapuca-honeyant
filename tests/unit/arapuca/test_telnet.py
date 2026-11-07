@@ -1,3 +1,7 @@
+import asyncio
+
+import pytest
+
 from honeyant.arapuca.leitor import LeitorLimitado
 from honeyant.arapuca.telnet import ServicoTelnet, remover_iac
 
@@ -19,6 +23,27 @@ async def test_captura_login_senha_e_comandos(leitor_com):
     assert (cap.usuario, cap.senha) == ("root", "xc3511")
     assert cap.comandos == ["uname -a", "cat /etc/passwd"]
     assert b"armv7l" in enviado and b"command not found" in enviado
+
+
+@pytest.mark.parametrize(
+    "fim", [b"\r\n", b"\r\x00", b"\r", b"\n"], ids=["CRLF", "CRNUL", "CR", "LF"]
+)
+async def test_captura_usuario_e_senha_com_qualquer_fim_de_linha(fim):
+    """Antes da correção, CR NUL e CR sozinho estouravam o ocioso e a sessão ficava sem
+    usuário e senha. Aqui o cliente manda cada linha e espera, como um bot faria."""
+    fonte = asyncio.StreamReader()
+
+    async def escrever(b):
+        pass
+
+    for linha in (b"root", b"xc3511", b"exit"):
+        fonte.feed_data(linha + fim)
+    sessao = asyncio.create_task(
+        ServicoTelnet().atender(LeitorLimitado(fonte, ocioso_s=0.3), escrever)
+    )
+    cap = await asyncio.wait_for(sessao, timeout=2)
+    assert (cap.usuario, cap.senha) == ("root", "xc3511")
+    assert cap.comandos == []
 
 
 async def test_para_em_20_comandos(leitor_com):

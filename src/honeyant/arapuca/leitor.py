@@ -22,6 +22,9 @@ class LeitorLimitado:
         self._ocioso_s = ocioso_s
         self._fim = None if prazo_s is None else time.monotonic() + prazo_s
         self.bytes_lidos = 0
+        # A última linha terminou num CR: um LF ou NUL logo em seguida é o resto desse
+        # mesmo fim de linha (RFC 854), não uma linha vazia nova.
+        self._apos_cr = False
 
     def _espera(self) -> float:
         if self._fim is None:
@@ -32,7 +35,12 @@ class LeitorLimitado:
         return min(self._ocioso_s, restante)
 
     async def ler_linha(self, max_linha: int = 256) -> bytes | None:
-        """Lê até `\n` (sem `\r\n`). Corta em `max_linha` e descarta o resto da linha.
+        """Lê uma linha sem o terminador. Corta em `max_linha` e descarta o resto da linha.
+
+        Aceita os fins de linha que clientes Telnet mandam (RFC 854): CR LF, CR NUL, CR
+        sozinho e LF. A linha termina já no CR, sem esperar o próximo byte: um cliente que
+        manda só CR e aguarda o prompt não fica preso até o tempo ocioso. O LF ou NUL que
+        vier logo depois desse CR é descartado na leitura seguinte.
 
         Devolve None no EOF sem dados. Lança LimiteExcedido ou TimeoutError.
         """
@@ -40,9 +48,17 @@ class LeitorLimitado:
         while True:
             byte = await self._ler_byte()
             if byte is None:
+                self._apos_cr = False
                 return bytes(linha) if linha else None
+            if self._apos_cr:
+                self._apos_cr = False
+                if byte in (b"\n", b"\x00"):
+                    continue
+            if byte == b"\r":
+                self._apos_cr = True
+                return bytes(linha)
             if byte == b"\n":
-                return bytes(linha.rstrip(b"\r"))
+                return bytes(linha)
             if len(linha) < max_linha:
                 linha += byte
 
