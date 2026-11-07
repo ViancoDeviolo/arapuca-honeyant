@@ -72,9 +72,11 @@ def test_casa_dos_dois_perfis():
     assert c.get("/api/v1/casa", params={"perfil": "seguro"}).json()["perfil"] == "seguro"
 
 
-def test_resumo_cai_no_exemplo_sem_arquivo_real():
-    j = _cliente().get("/api/v1/resumo").json()
-    assert j["origem"] == "exemplo"
+def test_resumo_cai_no_exemplo_sem_arquivo_real(tmp_path):
+    # Cópia das fixtures sem nenhum resumo-real-*.json (o docs/demo de verdade pode ter um).
+    shutil.copy(DEMO / "resumo-congelado.json", tmp_path / "resumo-congelado.json")
+    r = FonteDoResumoLocal(tmp_path).resumo()
+    assert r.origem == "exemplo"
 
 
 def test_resumo_real_mais_recente_vence(tmp_path):

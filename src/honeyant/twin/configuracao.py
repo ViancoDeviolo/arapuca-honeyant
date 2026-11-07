@@ -3,8 +3,8 @@
 Dois perfis, como no spec-mãe (seção 10):
 
 - **inseguro:** Mosquitto na 1883, sem TLS, sem autenticação e sem ACL. A câmera usa a
-  credencial que os atacantes mais tentaram na isca: é ela que aparece legível no
-  `antes.pcap`.
+  credencial padrão de fábrica `admin`/`admin`, presente nas listas públicas usadas por
+  botnets de IoT (`core/credenciais.py`): é ela que aparece legível no `antes.pcap`.
 - **seguro:** Mosquitto na 8883 com TLS, senha forte e aleatória por dispositivo, ACL por
   tópico (cada um publica só o próprio estado e assina só o próprio comando) e a câmera
   numa rede Docker separada.
@@ -12,12 +12,11 @@ Dois perfis, como no spec-mãe (seção 10):
 Quem grava arquivos e chama o Docker é o `apps/twin.py`; aqui só se monta o texto.
 """
 
-import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from honeyant.core.casa import TipoDePerfil
-from honeyant.core.resumo import ResumoDeAmeaca
+from honeyant.core.credenciais import CREDENCIAL_DA_CAMERA
 from honeyant.twin.planta import DispositivoPlanejado
 
 # Mesma imagem fixada no teste de captura (infra/teste-captura): sem tag flutuante.
@@ -31,10 +30,6 @@ REDE_CAMERA = "camera_isolada"
 USUARIO_MONITOR = "monitor"  # só lê casa/#: usado pelos testes de integração e na demo
 INTERVALO_S = 3
 
-# A credencial vem da internet (isca): só entra se for segura para .env e shell.
-_CREDENCIAL_SEGURA = re.compile(r"^[A-Za-z0-9._@-]{1,64}$")
-CREDENCIAL_PADRAO = ("admin", "admin")
-
 
 @dataclass(frozen=True)
 class Credencial:
@@ -42,17 +37,9 @@ class Credencial:
     senha: str
 
 
-def credencial_vazada(resumo: ResumoDeAmeaca) -> Credencial:
-    """A credencial mais tentada na isca que dá para usar com segurança (spec-mãe, 10).
-
-    Vem de atacantes: qualquer caractere fora de `[A-Za-z0-9._@-]` (espaço, aspas, `$`,
-    quebra de linha) faz a credencial ser pulada, para nunca virar comando no shell nem
-    variável no compose.
-    """
-    for c in resumo.top_credenciais:
-        if c.usuario and c.senha and all(_CREDENCIAL_SEGURA.match(v) for v in (c.usuario, c.senha)):
-            return Credencial(c.usuario, c.senha)
-    return Credencial(*CREDENCIAL_PADRAO)
+def credencial_da_camera() -> Credencial:
+    """A credencial padrão de fábrica da câmera no perfil inseguro (fixa, nunca da internet)."""
+    return Credencial(*CREDENCIAL_DA_CAMERA)
 
 
 def credenciais(

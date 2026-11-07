@@ -8,8 +8,8 @@ broker, o único jeito de ver o tráfego entre containers no Docker Desktop do W
 espera um pouco, sobe os dispositivos, deixa a casa conversar e para o tcpdump. Os
 `CONNECT` acontecem com os dispositivos já sendo gravados.
 
-As capturas só têm credenciais **de teste geradas para a demo** (a "vazada" é a mais
-tentada na isca, pública por natureza), nunca senhas reais de alguém.
+As capturas só têm credenciais **de teste geradas para a demo** (a da câmera é a padrão de
+fábrica `admin`/`admin`, pública), nunca senhas reais de alguém.
 """
 
 import argparse

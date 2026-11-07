@@ -108,3 +108,9 @@ def test_intencao_soma_o_total_de_eventos(fabrica_evento, agora):
 )
 def test_classificar(diversidade, comandos, taxa, esperado):
     assert classificar(diversidade, comandos, taxa) is esperado
+
+
+def test_usuario_e_senha_vazios_nao_sao_credencial(fabrica_evento, agora):
+    eventos = [fabrica_evento(usuario="", senha=None), fabrica_evento(usuario="root", senha="")]
+    r = agregar(eventos, {}, agora)
+    assert [(c.usuario, c.senha) for c in r.top_credenciais] == [("root", "")]

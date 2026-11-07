@@ -4,7 +4,7 @@ Prova da vulnerabilidade **real** da casa simulada e da mitigação:
 
 | Arquivo | Perfil | O que mostra |
 |---|---|---|
-| [`antes.pcap`](antes.pcap) | inseguro (Mosquitto na 1883, sem TLS, sem senha, sem ACL) | `CONNECT` MQTT com **usuário e senha legíveis**. A câmera usa `admin`/`admin`, a credencial que os atacantes mais tentaram na isca |
+| [`antes.pcap`](antes.pcap) | inseguro (Mosquitto na 1883, sem TLS, sem senha, sem ACL) | `CONNECT` MQTT com **usuário e senha legíveis**. A câmera usa `admin`/`admin`, credencial padrão de fábrica, presente nas listas públicas usadas por botnets de IoT |
 | [`depois.pcap`](depois.pcap) | seguro (8883 com TLS, senha forte por dispositivo, ACL por tópico, câmera isolada) | Só TLS: nenhum `CONNECT` legível, nenhuma senha |
 
 As credenciais nas capturas são **de teste, geradas para a demo**. Nenhuma senha real de
