@@ -1,0 +1,81 @@
+/* Tema escuro e sóbrio da tela de login. Só classes; contraste AA; tudo funciona pelo teclado. */
+:root {
+  color-scheme: dark;
+  --fundo: #14161a;
+  --superficie: #1d2025;
+  --borda: #3a3f47;
+  --texto: #e8eaed;
+  --texto-suave: #aab0b8;
+  --destaque: #f2b134;
+  --erro: #ff8f8f;
+  font-family: system-ui, sans-serif;
+}
+
+.login-pagina {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+.login {
+  width: min(22rem, 90vw);
+  padding: 1.75rem;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 0.5rem;
+}
+
+.login__titulo {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.login__subtitulo {
+  margin: 0 0 1.25rem;
+  color: var(--texto-suave);
+}
+
+.login__form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.login__entrada {
+  padding: 0.6rem;
+  font: inherit;
+  color: var(--texto);
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 0.35rem;
+}
+
+.login__botao {
+  margin-top: 0.4rem;
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--fundo);
+  background: var(--destaque);
+  border: 0;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.login__entrada:focus-visible,
+.login__botao:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+}
+
+.login__erro {
+  margin: 0;
+  color: var(--erro);
+  font-weight: 600;
+}
+
+.login__erro[hidden] {
+  display: none;
+}

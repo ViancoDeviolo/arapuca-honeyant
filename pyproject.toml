@@ -17,6 +17,7 @@ honeyant-isca = "honeyant.apps.isca:main"
 honeyant-contratos = "honeyant.apps.contratos:main"
 honeyant-local = "honeyant.apps.local:main"
 honeyant-verificar-ro = "honeyant.apps.verificar_ro:main"
+honeyant-hash-senha = "honeyant.apps.hash_senha:main"
 
 [project.optional-dependencies]
 inteligencia = [
