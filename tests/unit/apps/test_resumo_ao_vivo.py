@@ -206,3 +206,23 @@ def test_cliente_traduz_401_e_json_invalido(tmp_path):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+def test_montar_usa_a_fonte_de_resumo_externa_e_a_rota_nao_muda():
+    """O app troca só a fonte do resumo (cartões e formigas); a rota segue o embutido."""
+    from fastapi.testclient import TestClient
+
+    from honeyant.apps.local import ConfigLocal, montar
+
+    class AoVivoFalso:
+        def resumo(self):
+            return ResumoComOrigem(origem="ao_vivo", resumo=_resumo(999), atualizado_em=AGORA)
+
+    base = "http://127.0.0.1"
+    padrao = TestClient(montar(ConfigLocal(DEMO, "127.0.0.1", 0)), base_url=base)
+    vivo = TestClient(
+        montar(ConfigLocal(DEMO, "127.0.0.1", 0), fonte_resumo=AoVivoFalso()), base_url=base
+    )
+    r = vivo.get("/api/v1/resumo").json()
+    assert r["origem"] == "ao_vivo" and r["resumo"]["total_eventos"] == 999
+    assert vivo.get("/api/v1/rotas").json() == padrao.get("/api/v1/rotas").json()
