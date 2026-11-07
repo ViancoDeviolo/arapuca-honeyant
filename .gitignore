@@ -33,3 +33,7 @@ Thumbs.db
 
 # Capturas de teste (só credenciais falsas, mas não são as capturas oficiais)
 infra/teste-captura/capturas/
+
+# Twin: senhas, certificados e .env gerados localmente; capturas brutas de trabalho
+infra/twin/gerado/
+infra/twin/capturas/
