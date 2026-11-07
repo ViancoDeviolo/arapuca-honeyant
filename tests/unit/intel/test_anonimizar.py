@@ -20,7 +20,7 @@ QUALQUER_IPV4 = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
         ("MGLNDD_203.0.113.7_23", "MGLNDD_<ipv4>_23"),  # no meio do texto
         ("1.2.3.4", "<ipv4>"),
         ("de 10.0.0.1 para 192.168.0.254", "de <ipv4> para <ipv4>"),  # vários
-        ("fim de frase 8.8.8.8.", "fim de frase <ipv4>."),
+        ("fim de frase 192.0.2.1.", "fim de frase <ipv4>."),
         ("255.255.255.255", "<ipv4>"),
     ],
 )
