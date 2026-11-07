@@ -1,0 +1,12 @@
+# Fim de linha LF no repositório para todo texto, em qualquer sistema e editor.
+# Sem isto, o Windows e os editores web gravam CRLF e geram diffs de linha inteira.
+* text=auto eol=lf
+
+# Binários: o git nunca mexe no conteúdo.
+*.pcap binary
+*.pcapng binary
+*.png binary
+*.jpg binary
+*.mmdb binary
+*.db binary
+*.sqlite binary
