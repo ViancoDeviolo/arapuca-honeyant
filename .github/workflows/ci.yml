@@ -30,7 +30,8 @@ jobs:
         with:
           node-version: "20"
       - name: Testes JS (funções puras do painel)
-        run: node --test tests/js/
+        # Lista os arquivos: "node --test <diretório>" falha no Node 22.
+        run: node --test tests/js/*.test.mjs
 
   seguranca:
     runs-on: ubuntu-latest

@@ -12,7 +12,11 @@ uv run ruff check .
 uv run ruff format --check .
 uv run lint-imports
 uv run pytest
+node --test tests/js/*.test.mjs        # Node 20 ou mais novo
 ```
+
+No PowerShell, os testes JS são `node --test (Get-ChildItem tests/js/*.test.mjs)`.
+Não use `node --test tests/js/` (diretório): falha no Node 22.
 
 O CI roda esses comandos (e verificações de segurança) em todo PR. PR com CI vermelho não entra.
 
