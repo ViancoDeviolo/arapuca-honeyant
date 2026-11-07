@@ -123,13 +123,12 @@ contexto, componentes, sequência da demo e implantação em
   mostrar. O painel usa só `textContent` e uma CSP sem script inline.
 - **Capturas:** contêm só credenciais de teste geradas para a demo.
 
-### Janelas de saída da EC2
+### Registro das janelas de saída da EC2
 
-Cada vez que a saída é aberta (só para instalar e construir a imagem), ela é registrada aqui.
-
-| Data | Início | Fim | Motivo |
-|---|---|---|---|
-| _a preencher pelo responsável do deploy_ | | | |
+A saída fica bloqueada o tempo todo e só é aberta (HTTP/HTTPS) durante instalações e
+deploys. As três janelas abertas até agora (14, 5 e 47 minutos), com data, hora e motivo,
+tiradas do CloudTrail, estão em
+[`infra/aws/DEPLOY.md`, seção 4.1](infra/aws/DEPLOY.md#41-registro-das-janelas-de-saída-da-ec2).
 
 ## Equipe
 

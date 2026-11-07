@@ -32,7 +32,33 @@ O Security Group é *stateful*: as respostas às conexões recebidas saem normal
 2. Fazer o deploy (seção 5).
 3. **Remover as duas regras de saída** e conferir (seção 6).
 
-Anote início e fim de cada janela em `infra/aws/janelas.md` (fora do Git, se tiver dados da conta).
+Registre início e fim de cada janela na seção 4.1 (só data, hora e motivo, sem dados da conta).
+
+## 4.1 Registro das janelas de saída da EC2
+
+Fonte: histórico de eventos do AWS CloudTrail (us-east-1), eventos
+`AuthorizeSecurityGroupEgress` e `RevokeSecurityGroupEgress` no Security Group da isca.
+Horários em Brasília (UTC-03:00).
+
+| Evento | Data e hora (BRT) | O que aconteceu |
+|---|---|---|
+| Saída bloqueada | 05/11 18:54:13 | Removida a regra padrão "todo o tráfego" do Security Group da isca, na criação |
+| Janela 1 aberta | 05/11 19:28:09 | HTTP e HTTPS de saída liberados para a instalação inicial |
+| Janela 1 fechada | 05/11 19:42:26 | Regras removidas; timeout do curl confirmado na EC2 (14 min aberta) |
+| Janela 2 aberta | 05/11 22:24:40 | Primeiro deploy da isca |
+| Janela 2 fechada | 05/11 22:30:00 | Regras removidas (5 min aberta) |
+| Janela 3 aberta | 06/11 18:23:15 | Teste do mode=ro no SQLite e atualização do deploy |
+| Janela 3 fechada | 06/11 19:10:24 | Regras removidas (47 min aberta) |
+
+**Procedimento:** a saída fica bloqueada o tempo todo; é liberada só para HTTP/HTTPS
+durante instalações e deploys, fechada logo depois e conferida com
+`curl -m 5 https://example.com`, que precisa dar timeout.
+
+**Nota:** em 05/11 às 19:14:10, as regras de saída foram adicionadas por engano no Security
+Group padrão da VPC, que não está associado à instância da isca. A isca não foi afetada.
+
+**Como auditar:** CloudTrail → Histórico de eventos, filtrando pelos nomes de evento
+`AuthorizeSecurityGroupEgress` e `RevokeSecurityGroupEgress`.
 
 ## 5. Deploy
 
