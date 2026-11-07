@@ -145,3 +145,21 @@ def test_sem_openssl_mensagem_clara(monkeypatch, tmp_path):
 
 def test_openssl_encontrado():
     assert shutil.which("openssl") or localizar_openssl()
+
+
+def test_conferir_resumo_com_chave_certa_e_errada(ca, tmp_path, capsys):
+    """O comando do DEPLOY usa o mesmo cliente OpenSSL do app (o curl do Windows não
+    aceita IP no certificado)."""
+    from honeyant.apps import conferir_resumo
+
+    emitir("127.0.0.1", ca, tmp_path)
+    srv = _servir(tmp_path)
+    url = f"https://127.0.0.1:{srv.server_address[1]}"
+    try:
+        assert conferir_resumo.main(["--url", url, "--ca", str(ca / "ca.crt")], chave=CHAVE) == 0
+        assert "200" in capsys.readouterr().out
+        assert conferir_resumo.main(["--url", url, "--ca", str(ca / "ca.crt")], chave="x") == 1
+        assert "401" in capsys.readouterr().out
+    finally:
+        srv.shutdown()
+        srv.server_close()

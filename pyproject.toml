@@ -26,6 +26,7 @@ honeyant-sensor = "honeyant.apps.sensor:main"
 honeyant-chave-app = "honeyant.apps.chave_app:main"
 honeyant-servir-resumo = "honeyant.apps.servir_resumo:main"
 honeyant-certificados = "honeyant.apps.certificados:main"
+honeyant-conferir-resumo = "honeyant.apps.conferir_resumo:main"
 honeyant-exportar-resumo = "honeyant.apps.exportar_resumo:main"
 
 [project.optional-dependencies]

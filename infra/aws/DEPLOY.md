@@ -207,13 +207,16 @@ Feche a janela (seção 4) e confira o `curl` de saída (seção 6).
 docker stats --no-stream   # isca abaixo de 256 MiB e resumo-api abaixo de 128 MiB
 ```
 
-Do seu PC (com o IP liberado na 443), com o `curl` conferindo a CA do projeto:
+Do seu PC (com o IP liberado na 443), com o mesmo cliente do app (CA do projeto, IP no
+certificado, TLS 1.2+):
 
 ```bash
-curl --cacert ~/.honeyant/ca/ca.crt -H "Authorization: Bearer <chave>" https://<IP>/api/v1/resumo   # 200 e JSON
-curl --cacert ~/.honeyant/ca/ca.crt https://<IP>/api/v1/resumo -o /dev/null -w "%{http_code}\n"      # 401
-curl --cacert ~/.honeyant/ca/ca.crt https://<IP>/ -o /dev/null -w "%{http_code}\n"                   # 404
+uv run honeyant-conferir-resumo --url https://<IP>    # pede a chave; esperado: "200: resumo válido, N eventos"
 ```
+
+Não use o `curl` do Windows para isso: ele (Schannel) não aceita IP no certificado e falha
+mesmo com tudo certo. Conferido em 07/11 no ensaio local do compose da nuvem: com a chave
+`200`; sem a chave `401`; outra rota `404`; processo como `uid=10002`; 24 MiB de memória.
 
 Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
 
