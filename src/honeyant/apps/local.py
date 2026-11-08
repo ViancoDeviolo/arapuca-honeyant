@@ -21,6 +21,7 @@ from honeyant.core.resumo import ResumoDeAmeaca
 from honeyant.core.rota import Snapshot
 from honeyant.painel.app import Encaixe, criar_app
 from honeyant.painel.modelos import AnaliseDeRota, ResumoComOrigem
+from honeyant.painel.ports import FonteDoResumo
 from honeyant.pathfinder.aco import ACO, ParametrosACO
 from honeyant.pathfinder.fuzzy import ModeloDeRisco
 from honeyant.pathfinder.ports import ObservadorDeIteracao
@@ -152,13 +153,18 @@ def montar(
     intervalo_base: float = 0.6,
     intervalo_minimo: float = 0.15,
     encaixe: Encaixe = Encaixe(),  # noqa: B008 (dataclass congelada, imutável)
+    fonte_resumo: FonteDoResumo | None = None,
 ) -> FastAPI:
-    """Monta o painel. O login (PR do Gustavo) chega pelo `encaixe` (spec, seção 3.5)."""
-    fonte, fonte_resumo = carregar_fontes(config.demo_dir)
+    """Monta o painel. O login (PR do Gustavo) chega pelo `encaixe` (spec, seção 3.5).
+
+    `fonte_resumo` troca só o resumo dos cartões e das formigas (o app ao vivo usa a
+    `FonteDoResumoAoVivo`); a rota continua sobre o resumo de `docs/demo`.
+    """
+    fonte, fonte_resumo_local = carregar_fontes(config.demo_dir)
     return criar_app(
         fonte.casas,
         fonte,
-        fonte_resumo,
+        fonte_resumo or fonte_resumo_local,
         intervalo_base=intervalo_base,
         intervalo_minimo=intervalo_minimo,
         encaixe=encaixe,

@@ -5,6 +5,7 @@ import { aceitarSnapshot } from "./estado.js";
 import { criarCena } from "./cena.js";
 import { formatarComparativo } from "./comparativo.js";
 import { maiores, nivelDeRisco, ROTULO_NIVEL, sortearServico } from "./risco.js";
+import { acumuladoParaComparar, novosAtaques, textoDaOrigem } from "./aovivo.js";
 
 const $ = (id) => document.getElementById(id);
 const SESSAO_EXPIRADA = "Sessão expirada. Entre de novo.";
@@ -28,21 +29,15 @@ function velocidade() {
   return marcado ? marcado.value : "1";
 }
 
-function dataCurta(iso) {
-  const d = new Date(iso);
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(d);
-}
-
 function mostrarOrigem(resumo) {
-  $("atualizado").textContent =
-    resumo.origem === "real"
-      ? `Ataques reais, congelados em ${dataCurta(resumo.resumo.gerado_em)}`
-      : "Dados de exemplo";
+  $("atualizado").textContent = textoDaOrigem(resumo);
 }
 
 const NS_SVG = "http://www.w3.org/2000/svg";
 const NOME_SERVICO = { telnet: "Telnet", mqtt: "MQTT", http: "HTTP", upnp: "UPnP", lan: "LAN" };
 const INTERVALO_ATAQUE_MS = 2000;
+// O painel local é barato: 3 s. Quem limita as consultas à EC2 (15 s) é o servidor do app.
+const INTERVALO_RESUMO_MS = 3000;
 const NIVEIS = ["baixo", "medio", "alto", "critico"];
 let nomesDePais = null;
 try {
@@ -73,10 +68,7 @@ function itemComQuantidade(texto, quantidade) {
 // Cartão "Ataques reais (24 h)". Senhas e países vêm da isca: só entram por textContent.
 function mostrarAtaques(resumoComOrigem) {
   const r = resumoComOrigem.resumo;
-  const real = resumoComOrigem.origem === "real";
-  $("ataques-origem").textContent = real
-    ? `Ataques reais, congelados em ${dataCurta(r.gerado_em)}`
-    : "Dados de exemplo";
+  $("ataques-origem").textContent = textoDaOrigem(resumoComOrigem);
   const servicos = $("ataques-servicos");
   const senhas = $("ataques-senhas");
   const paises = $("ataques-paises");
@@ -367,18 +359,53 @@ async function iniciar() {
   atualizarControles();
   avisar("Pronto. Clique em Prever invasão.");
 
-  // Formigas de ataque: uma a cada 2 s, sorteada na proporção dos ataques do resumo.
-  // O ritmo é fixo (resumo congelado); com o intel ao vivo, sairia uma por ataque novo.
-  if (!reduzido && resumo.resumo.total_eventos > 0) {
-    const origem =
-      resumo.origem === "real" ? `dos ataques congelados em ${dataCurta(resumo.resumo.gerado_em)}` : "dos dados de exemplo";
-    $("ataques-ritmo").textContent =
-      `Formigas de ataque na cena: uma a cada 2 s, na proporção ${origem}.`;
+  // Formigas de ataque. Ao vivo: uma por ataque novo na isca (diferença do acumulado
+  // entre duas consultas). Fora do ao vivo: ritmo fixo de uma a cada 2 s, sorteada na
+  // proporção do resumo. Nada com "reduzir movimento".
+  let resumoAtual = resumo;
+  let acumuladoAnterior = acumuladoParaComparar(resumo);
+
+  function mostrarRitmo() {
+    if (reduzido) return;
+    const r = resumoAtual;
+    if (r.origem === "ao_vivo") {
+      $("ataques-ritmo").textContent = "Formigas de ataque na cena: uma por ataque novo recebido pela isca.";
+    } else if (r.resumo.total_eventos > 0) {
+      $("ataques-ritmo").textContent = "Formigas de ataque na cena: uma a cada 2 s, na proporção deste resumo.";
+    } else {
+      $("ataques-ritmo").textContent = "";
+    }
+  }
+  mostrarRitmo();
+
+  if (!reduzido) {
     setInterval(() => {
-      const servico = sortearServico(resumo.resumo.por_servico);
+      if (resumoAtual.origem === "ao_vivo" || resumoAtual.resumo.total_eventos === 0) return;
+      const servico = sortearServico(resumoAtual.resumo.por_servico);
       if (servico) cena.soltarAtaque(servico);
     }, INTERVALO_ATAQUE_MS);
   }
+
+  // A cada 3 s, o resumo de novo: ao vivo (EC2), cache offline ou embutido.
+  // A rota não muda: Prever, Mitigar e Replay usam o resumo embutido no servidor.
+  setInterval(async () => {
+    let novo;
+    try {
+      novo = await buscar("/api/v1/resumo");
+    } catch {
+      return; // o painel local não respondeu: tenta de novo na próxima
+    }
+    if (novo.origem === "ao_vivo" && !reduzido) {
+      for (const servico of novosAtaques(acumuladoAnterior, novo.resumo.acumulado_por_servico)) {
+        cena.soltarAtaque(servico);
+      }
+    }
+    acumuladoAnterior = acumuladoParaComparar(novo);
+    resumoAtual = novo;
+    mostrarOrigem(novo);
+    mostrarAtaques(novo);
+    mostrarRitmo();
+  }, INTERVALO_RESUMO_MS);
 
   if (!reduzido) {
     const quadro = (agora) => {

@@ -42,5 +42,55 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  resumo-api:
+    # Resumo agregado (sem IP) para o app ao vivo. Só GET /api/v1/resumo, com chave Bearer.
+    # Outro usuário (10002) no grupo da isca: lê o banco em mode=ro, sem poder escrever.
+    # Escuta em 8443 (porta alta: sem root nem capability); o host expõe 443, e o Security
+    # Group libera a 443 só para os IPs cadastrados. Ver infra/aws/DEPLOY.md, seção 7.2.
+    image: honeyant-isca:local
+    # Só sobe quando chamado pelo nome (DEPLOY 7.2): o deploy da isca (seção 5) não o inicia.
+    profiles: ["ao-vivo"]
+    depends_on:
+      isca:
+        condition: service_started
+    user: "10002:10001"
+    command: ["honeyant-servir-resumo"]
+    # HONEYANT_RESUMO_CHAVE_HASH, entre aspas simples. Lido pelo docker compose (usuário do
+    # deploy, permissão 600; fora do git). Opcional para o compose: sem ele a isca sobe
+    # normalmente e só o resumo-api recusa subir (sem a chave não há acesso).
+    env_file:
+      - path: resumo-api.env
+        required: false
+    environment:
+      HONEYANT_DB: /dados/isca.db
+      HONEYANT_RESUMO_CERT: /certs/servidor.crt
+      HONEYANT_RESUMO_CERT_CHAVE: /certs/servidor.key
+    ports:
+      - "443:8443"
+    volumes:
+      - dados:/dados
+      # Sem create_host_path: se os certificados não foram copiados, falha com erro claro em
+      # vez de criar uma pasta vazia do root que depois atrapalha o scp.
+      - type: bind
+        source: ./certs-resumo
+        target: /certs
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 64
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 volumes:
   dados:
