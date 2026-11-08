@@ -53,6 +53,8 @@ Horários em Brasília (UTC-03:00).
 | Janela 4 fechada | 07/11 16:53:49 | Regras removidas; timeout do curl confirmado na EC2 (1 min aberta) |
 | Janela 5 aberta | 07/11 17:30:22 | Redeploy da isca com a correção do fim de linha do Telnet (PR #32) |
 | Janela 5 fechada | 07/11 17:32:06 | Regras removidas; timeout do curl confirmado na EC2 (2 min aberta) |
+| Janela 6 aberta | 07/11 22:27:34 | Build e subida do resumo-api (PR #35) |
+| Janela 6 fechada | 07/11 22:40:03 | Regras removidas; timeout do curl confirmado na EC2 (12 min aberta) |
 
 **Procedimento:** a saída fica bloqueada o tempo todo; é liberada só para HTTP/HTTPS
 durante instalações e deploys, fechada logo depois e conferida com
@@ -165,10 +167,21 @@ acesso, TLS da CA do projeto e a porta 443 liberada só para IPs cadastrados. De
 **1. No seu PC (uma vez):**
 
 ```bash
-uv run honeyant-chave-app                      # guarde a chave; copie a linha HONEYANT_RESUMO_CHAVE_HASH='...'
+uv run honeyant-chave-app                      # imprime a chave e o hash, cada um com o rótulo na linha de cima
 uv run honeyant-certificados --ip <IP>         # CA em ~/.honeyant/ca (fica só no PC) + infra/certs-resumo/ (90 dias)
-scp -i <CHAVE> -r infra/certs-resumo <USUARIO>@<IP>:~/arapuca-honeyant/infra/
+
+# Um arquivo por vez e com caminho absoluto: em 07/11 o "scp -r" da pasta travou no servidor.key.
+ssh -i <CHAVE> ubuntu@<IP> "mkdir -p /home/ubuntu/arapuca-honeyant/infra/certs-resumo"
+scp -i <CHAVE> infra/certs-resumo/servidor.crt ubuntu@<IP>:/home/ubuntu/arapuca-honeyant/infra/certs-resumo/servidor.crt
+scp -i <CHAVE> infra/certs-resumo/servidor.key ubuntu@<IP>:/home/ubuntu/arapuca-honeyant/infra/certs-resumo/servidor.key
 ```
+
+O `honeyant-chave-app` imprime duas coisas diferentes; não troque uma pela outra:
+
+- **a chave**, sozinha na linha de baixo de "Chave de acesso": vai para as pessoas que usam o
+  app (por fora, nunca no repositório). Copie só essa linha, sem o rótulo;
+- **o hash**, a linha inteira `HONEYANT_RESUMO_CHAVE_HASH='scrypt$...'`: vai para a EC2
+  (passo 3). Não é a chave e não abre o app.
 
 A **chave privada da CA** (`~/.honeyant/ca/ca.key`) nunca sai do seu PC. Para a EC2 vão só
 `servidor.crt` e `servidor.key`.
@@ -194,10 +207,14 @@ EOF
 
 # O .env é lido pelo docker compose (o seu usuário), não pelo container: fica com você, 600.
 chmod 600 infra/resumo-api.env
-# O certificado e a chave do servidor são lidos dentro do container (usuário 10002).
+# O certificado e a chave do servidor são lidos dentro do container (usuário 10002, grupo 10001).
+# A PASTA também precisa deixar o 10002 entrar: em 07/11 ela veio do scp sem essa permissão e o
+# resumo-api caiu em loop com PermissionError ao abrir o certificado.
+sudo chgrp 10001 infra/certs-resumo && sudo chmod 750 infra/certs-resumo
 sudo chown 10002:10001 infra/certs-resumo/servidor.key infra/certs-resumo/servidor.crt
 sudo chmod 600 infra/certs-resumo/servidor.key
 sudo chmod 644 infra/certs-resumo/servidor.crt
+ls -ld infra/certs-resumo                        # drwxr-x--- ubuntu 10001
 ls -l infra/resumo-api.env infra/certs-resumo/   # .env: seu usuário, -rw-------; .key: 10002, -rw-------
 
 docker compose -f infra/compose.cloud.yml build isca
@@ -232,9 +249,20 @@ Não use o `curl` do Windows para isso: ele (Schannel) não aceita IP no certifi
 mesmo com tudo certo. Conferido em 07/11 no ensaio local do compose da nuvem: com a chave
 `200`; sem a chave `401`; outra rota `404`; processo como `uid=10002`; 24 MiB de memória.
 
-Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos.
+Atenção: 5 chaves erradas seguidas bloqueiam o seu IP por 15 minutos. O
+`honeyant-conferir-resumo` e o app recusam no próprio PC, sem gastar tentativa, o que
+claramente não é a chave: texto que começa com "Chave de acesso", "HONEYANT_" ou "scrypt", ou
+que tem espaço ou aspas.
 
 Depois do restart da isca acima, rode o `honeyant-conferir-resumo` de novo: tem que voltar a dar 200.
+
+**Resultado do deploy de 07/11 (janela 6):**
+
+| Conferência | Resultado |
+|---|---|
+| `honeyant-conferir-resumo` do PC | `200: resumo válido, 148 eventos nas últimas 24 h` |
+| `docker stats` | resumo-api 23 MiB / 128 MiB; isca 18 MiB / 256 MiB |
+| Restart da isca com o resumo-api no ar | total acumulado 366 antes e 366 depois (telnet 357, mqtt 9); os dois containers `Up`; o conferir voltou a dar 200 |
 
 **5. Renovação (a cada 90 dias):** a CA é a mesma, então nenhum app precisa ser refeito e
 não precisa de janela de saída. Os arquivos atuais pertencem ao usuário 10002, por isso a
@@ -243,7 +271,8 @@ cópia vai para uma pasta intermediária e o `install` coloca dono e permissão 
 ```bash
 # No PC:
 uv run honeyant-certificados --ip <IP>
-scp -i <CHAVE> infra/certs-resumo/servidor.crt infra/certs-resumo/servidor.key <USUARIO>@<IP>:~/
+scp -i <CHAVE> infra/certs-resumo/servidor.crt ubuntu@<IP>:/home/ubuntu/servidor.crt
+scp -i <CHAVE> infra/certs-resumo/servidor.key ubuntu@<IP>:/home/ubuntu/servidor.key
 
 # Na instância:
 cd ~/arapuca-honeyant

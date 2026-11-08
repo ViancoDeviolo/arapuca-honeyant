@@ -14,9 +14,10 @@ from honeyant.intel.acesso import gerar_hash
 
 def main() -> None:
     chave = secrets.token_urlsafe(32)
-    print(f"Chave de acesso (entregue a cada pessoa por fora): {chave}")
+    print("Chave de acesso, para entregar às pessoas que usam o app (copie só a linha de baixo):")
+    print(chave)
     print()
-    print("Linha para infra/resumo-api.env na EC2:")
+    print("Hash para a EC2 (a linha inteira vai para infra/resumo-api.env; não é a chave):")
     # Entre aspas simples: o Docker Compose interpreta "$" no env_file e corromperia o hash.
     print(f"HONEYANT_RESUMO_CHAVE_HASH='{gerar_hash(chave)}'")
 
