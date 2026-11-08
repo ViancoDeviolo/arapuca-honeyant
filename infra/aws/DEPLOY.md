@@ -255,6 +255,13 @@ rm ~/servidor.key ~/servidor.crt
 docker compose -f infra/compose.cloud.yml --profile ao-vivo restart resumo-api   # o certificado é relido ao reiniciar
 ```
 
+**Parar o resumo-api** (o app fica offline; a isca continua): por estar no profile, ele
+só para quando chamado pelo nome — um `down` simples não o derruba:
+
+```bash
+docker compose -f infra/compose.cloud.yml --profile ao-vivo stop resumo-api
+```
+
 **Trocar a chave de acesso:** novo `honeyant-chave-app`, novo `resumo-api.env` (passo 3) e
 **recriar** o container, porque o `restart` mantém o ambiente antigo:
 
@@ -268,4 +275,4 @@ o app esquece a chave salva, e basta fechar, abrir de novo e colar a nova.
 ## 8. Acompanhamento e encerramento
 
 - No dia seguinte ao deploy, em **Billing → Cost Explorer**, confirmar que o gasto diário está dentro do previsto (R$ 20–50 até a apresentação), incluindo o IPv4 público.
-- **Depois da ExpoTech (28/11/2026):** parar ou encerrar a instância e liberar o IP.
+- **Depois da ExpoTech (28/11/2026):** parar o resumo-api (`--profile ao-vivo stop resumo-api`), tirar a regra de entrada 443 do Security Group, e parar ou encerrar a instância e liberar o IP.

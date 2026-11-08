@@ -77,8 +77,13 @@ def ler_chave(config: Path, perguntar: Callable[[str], str] = getpass.getpass) -
         if not chave:
             return None
         if _CHAVE_VALIDA.match(chave):
-            config.parent.mkdir(parents=True, exist_ok=True)
-            config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            try:
+                config.parent.mkdir(parents=True, exist_ok=True)
+                config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            except OSError:
+                print(
+                    "Não deu para salvar a chave (pasta do usuário sem permissão): vale só agora."
+                )
             print(f"Chave recebida ({len(chave)} caracteres).")
             return chave
         print(

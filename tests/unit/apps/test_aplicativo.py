@@ -151,3 +151,13 @@ def test_confirma_quantos_caracteres_chegaram(tmp_path, capsys):
     """Segunda revisão, menor 10: o getpass não mostra nada; o app confirma o tamanho."""
     ler_chave(tmp_path / "config.json", perguntar=lambda _: "x" * 43)
     assert "43 caracteres" in capsys.readouterr().out
+
+
+def test_appdata_sem_permissao_nao_derruba_o_app(tmp_path):
+    """Terceira revisão: não conseguir salvar a chave não impede de usá-la nesta sessão."""
+    bloqueio = tmp_path / "HoneyAnt"
+    bloqueio.write_text("isto é um arquivo, não uma pasta", encoding="utf-8")
+    assert (
+        ler_chave(bloqueio / "config.json", perguntar=lambda _: "chave-da-sessao")
+        == "chave-da-sessao"
+    )
