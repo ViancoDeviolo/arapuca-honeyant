@@ -18,6 +18,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from honeyant.apps.certificados import CA_PADRAO
+from honeyant.apps.chave_colada import problema_na_chave
 from honeyant.apps.resumo_ao_vivo import contexto_cliente
 from honeyant.core.resumo import ResumoDeAmeaca
 
@@ -33,6 +34,9 @@ def main(argv: Sequence[str] | None = None, chave: str | None = None) -> int:
         print("a URL precisa começar com https:// (a chave nunca vai em texto puro)")
         return 2
     chave = chave if chave is not None else getpass.getpass("Chave de acesso: ").strip()
+    if motivo := problema_na_chave(chave):  # recusa aqui: não gasta tentativa no servidor
+        print(motivo)
+        return 2
     abridor = urllib.request.build_opener(
         urllib.request.ProxyHandler({}),  # direto, como o app
         urllib.request.HTTPSHandler(context=contexto_cliente(args.ca)),

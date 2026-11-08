@@ -1,6 +1,7 @@
 """Chave de acesso do resumo-api: hash scrypt, tempo constante e 5 erros / 15 min por IP."""
 
 import hmac
+import re
 
 import pytest
 
@@ -99,7 +100,8 @@ def test_hash_invalido_no_controle_e_recusado():
 def test_chave_app_imprime_chave_e_hash_que_confere(capsys, relogio):
     chave_app.main()
     linhas = [linha for linha in capsys.readouterr().out.splitlines() if linha.strip()]
-    chave = next(linha.split(":", 1)[1].strip() for linha in linhas if linha.startswith("Chave"))
+    rotulo = next(i for i, linha in enumerate(linhas) if linha.startswith("Chave de acesso"))
+    chave = linhas[rotulo + 1]  # a chave sozinha na linha de baixo do rótulo
     hash_linha = next(linha for linha in linhas if linha.startswith("HONEYANT_RESUMO_CHAVE_HASH="))
     hash_salvo = hash_linha.split("=", 1)[1].strip("'")  # o compose remove as aspas
     assert len(chave) >= 40
@@ -117,6 +119,17 @@ def test_linha_do_env_vem_entre_aspas_simples(capsys):
     )
     valor = linha.split("=", 1)[1]
     assert valor.startswith("'scrypt$") and valor.endswith("'")
+
+
+def test_chave_sai_sozinha_e_cada_linha_diz_para_onde_vai(capsys):
+    """Em 07/11 o rótulo e o hash foram colados no lugar da chave (bloqueio de 15 min)."""
+    chave_app.main()
+    linhas = [linha for linha in capsys.readouterr().out.splitlines() if linha.strip()]
+    rotulo = next(i for i, linha in enumerate(linhas) if linha.startswith("Chave de acesso"))
+    assert re.fullmatch(r"[A-Za-z0-9_-]{40,}", linhas[rotulo + 1])
+    assert "pessoas" in linhas[rotulo]
+    hash_i = next(i for i, linha in enumerate(linhas) if linha.startswith("HONEYANT_"))
+    assert "EC2" in linhas[hash_i - 1] and "não é a chave" in linhas[hash_i - 1]
 
 
 # ---------- menores da revisão final: trava e memória do scrypt ----------

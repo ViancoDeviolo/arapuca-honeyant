@@ -15,6 +15,7 @@ sucesso. **401: o app para de consultar** até ser reaberto e mostra "chave de a
 inválida" — assim nunca chega aos 5 erros que bloqueiam o IP.
 """
 
+import contextlib
 import json
 import os
 import ssl
@@ -36,6 +37,10 @@ from honeyant.painel.ports import FonteDoResumo
 INTERVALO_S = 15
 TETO_S = 300
 AVISO_CHAVE_INVALIDA = "chave de acesso inválida"
+LIMITE_BYTES = 1024 * 1024  # um resumo tem poucos KB; mais que isso não é o nosso servidor
+# Sem consulta bem-sucedida há mais que isso, o "ao vivo" é velho demais para ser chamado assim
+# (thread morto ou consulta travada): o painel volta para o cache/embutido.
+AO_VIVO_VALIDO_S = 60
 
 
 class ChaveInvalida(Exception):
@@ -59,6 +64,13 @@ def contexto_cliente(ca: Path) -> ssl.SSLContext:
     return contexto
 
 
+class _SemRedirecionar(urllib.request.HTTPRedirectHandler):
+    """O resumo-api nunca redireciona; seguir um redirecionamento reenviaria a chave."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ARG002
+        raise urllib.error.HTTPError(req.full_url, code, "redirecionamento recusado", headers, fp)
+
+
 class ClienteResumo:
     def __init__(
         self, url: str, chave: str, contexto: ssl.SSLContext, timeout_s: float = 5
@@ -69,7 +81,9 @@ class ClienteResumo:
         # ProxyHandler({}): sempre direto. Pelo proxy do sistema, a EC2 veria o IP do proxy,
         # não o da rede liberada no Security Group.
         self._abridor = urllib.request.build_opener(
-            urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=contexto)
+            urllib.request.ProxyHandler({}),
+            _SemRedirecionar(),
+            urllib.request.HTTPSHandler(context=contexto),
         )
 
     def buscar(self) -> ResumoDeAmeaca:
@@ -78,7 +92,7 @@ class ClienteResumo:
         )
         try:
             with self._abridor.open(pedido, timeout=self._timeout) as r:
-                corpo = r.read()
+                corpo = r.read(LIMITE_BYTES + 1)
         except urllib.error.HTTPError as erro:
             if erro.code in (401, 403):
                 raise ChaveInvalida from None
@@ -95,6 +109,8 @@ class ClienteResumo:
             raise FalhaDeRede(str(erro.reason)) from None
         except Exception as erro:  # noqa: BLE001  # nada inesperado pode virar 500 na página
             raise FalhaDeRede(type(erro).__name__) from None
+        if len(corpo) > LIMITE_BYTES:
+            raise RespostaInvalida("resposta grande demais para um resumo")
         try:
             return ResumoDeAmeaca.model_validate_json(corpo)
         except ValidationError:
@@ -137,6 +153,7 @@ class FonteDoResumoAoVivo:
         self._parado = False  # depois de um 401
         self._iniciado = False
         self._ultimo_ao_vivo: ResumoComOrigem | None = None
+        self._quando_ao_vivo = 0.0  # relógio da última consulta bem-sucedida
         self._estado = ""  # última mensagem mandada ao console
         self.espera_s: float = INTERVALO_S
 
@@ -149,8 +166,12 @@ class FonteDoResumoAoVivo:
         threading.Thread(target=self._laco, daemon=True, name="resumo-ao-vivo").start()
 
     def _laco(self, dormir: Callable[[float], None] = time.sleep) -> None:
+        """Nunca morre em silêncio: um erro inesperado numa rodada vira espera e nova tentativa."""
         while True:
-            espera = self._rodada()
+            try:
+                espera = self._rodada()
+            except Exception:  # noqa: BLE001  # o thread de consulta não pode morrer
+                espera = TETO_S
             with self._trava:
                 if self._parado:
                     return
@@ -173,7 +194,8 @@ class FonteDoResumoAoVivo:
             if na_hora:
                 self._atualizar()
         with self._trava:
-            if self._parado or self._ultimo_ao_vivo is None:
+            velho = self._relogio() - self._quando_ao_vivo > AO_VIVO_VALIDO_S
+            if self._parado or self._ultimo_ao_vivo is None or velho:
                 return self._reserva()
             return self._ultimo_ao_vivo
 
@@ -205,12 +227,15 @@ class FonteDoResumoAoVivo:
             self._falhas = 0
             self._agendar(INTERVALO_S)
             self._ultimo_ao_vivo = atual
+            self._quando_ao_vivo = self._relogio()
         self._mudar_estado("Ao vivo: os ataques da isca estão chegando.")
 
     def _mudar_estado(self, mensagem: str) -> None:
         if mensagem != self._estado:
             self._estado = mensagem
-            self._avisar(mensagem)
+            # O aviso no console é só cortesia: nunca pode derrubar o thread de consulta.
+            with contextlib.suppress(Exception):
+                self._avisar(mensagem)
 
     def _agendar(self, espera: float) -> None:
         self.espera_s = espera
@@ -251,4 +276,5 @@ class FonteDoResumoAoVivo:
                 arquivo.write(conteudo)
             os.replace(temporario, self._cache)  # atômico: nunca fica pela metade
         except OSError:
-            Path(temporario).unlink(missing_ok=True)
+            with contextlib.suppress(OSError):  # antivírus segurando o temporário
+                Path(temporario).unlink(missing_ok=True)

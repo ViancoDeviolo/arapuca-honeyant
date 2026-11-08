@@ -119,7 +119,7 @@ def test_chave_com_aspas_curvas_e_recusada_e_pergunta_de_novo(tmp_path, capsys):
     respostas = iter(["abc”", "abc-certa"])
     chave = ler_chave(tmp_path / "config.json", perguntar=lambda _: next(respostas))
     assert chave == "abc-certa"
-    assert "caracteres" in capsys.readouterr().out
+    assert "aspas" in capsys.readouterr().out
 
 
 def test_duas_chaves_invalidas_fica_sem_chave(tmp_path):
@@ -151,3 +151,37 @@ def test_confirma_quantos_caracteres_chegaram(tmp_path, capsys):
     """Segunda revisão, menor 10: o getpass não mostra nada; o app confirma o tamanho."""
     ler_chave(tmp_path / "config.json", perguntar=lambda _: "x" * 43)
     assert "43 caracteres" in capsys.readouterr().out
+
+
+def test_appdata_sem_permissao_nao_derruba_o_app(tmp_path):
+    """Terceira revisão: não conseguir salvar a chave não impede de usá-la nesta sessão."""
+    bloqueio = tmp_path / "HoneyAnt"
+    bloqueio.write_text("isto é um arquivo, não uma pasta", encoding="utf-8")
+    assert (
+        ler_chave(bloqueio / "config.json", perguntar=lambda _: "chave-da-sessao")
+        == "chave-da-sessao"
+    )
+
+
+@pytest.mark.parametrize(
+    "colado",
+    [
+        "Chave de acesso (entregue a cada pessoa por fora): abc-123-chave",
+        "HONEYANT_RESUMO_CHAVE_HASH='scrypt$16384$8$1$abc$def'",
+        "scrypt$16384$8$1$abc$def",
+        "'abc-123-chave'",
+    ],
+)
+def test_rotulo_hash_ou_aspas_sao_recusados_antes_de_ir_ao_servidor(tmp_path, capsys, colado):
+    """Colar o rótulo ou o hash não vira chave salva (nem tentativa gasta no servidor)."""
+    respostas = iter([colado, "abc-123-chave"])
+    config = tmp_path / "config.json"
+    assert ler_chave(config, perguntar=lambda _: next(respostas)) == "abc-123-chave"
+    assert "Cole de novo só a chave" in capsys.readouterr().out
+    assert json.loads(config.read_text(encoding="utf-8")) == {"chave": "abc-123-chave"}
+
+
+def test_hash_salvo_no_config_nao_e_usado_como_chave(tmp_path):
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"chave": "scrypt$16384$8$1$abc$def"}), encoding="utf-8")
+    assert ler_chave(config, perguntar=lambda _: "chave-boa-123") == "chave-boa-123"

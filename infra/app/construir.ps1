@@ -24,7 +24,7 @@ if (-not (Test-Path $Ca)) {
 # A URL precisa ser https:// com um IP de verdade (o exemplo tem <ip-elastico>): senão o
 # .exe sai pronto e fica offline para sempre.
 $url = (Get-Content $Config -Raw | ConvertFrom-Json).url
-if ($url -notmatch '^https://\d{1,3}(\.\d{1,3}){3}(:\d+)?/?$') {
+if ($url -notmatch '^https://[0-9]{1,3}(\.[0-9]{1,3}){3}(:[0-9]+)?/?$') {
     Write-Error "URL inválida em ${Config}: '$url'. Use https://<ip-elastico>, com o IP de verdade."
 }
 

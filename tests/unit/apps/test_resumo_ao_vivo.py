@@ -408,3 +408,123 @@ def test_certificado_vencido_aparece_no_motivo():
     cliente._abridor = Abridor()
     with pytest.raises(FalhaDeRede, match="certificate has expired"):
         cliente.buscar()
+
+
+# ---------- terceira revisão: o thread de consulta nunca morre em silêncio ----------
+
+
+class FimDoTeste(Exception):
+    pass
+
+
+def test_laco_sobrevive_a_excecao_no_aviso_do_console(tmp_path, relogio):
+    cliente = ClienteComDuracao(relogio)
+
+    def avisar_quebrado(_mensagem):
+        raise OSError("console fechado")
+
+    fonte = _fonte(cliente, tmp_path, relogio, em_segundo_plano=True, avisar=avisar_quebrado)
+    voltas = []
+
+    def dormir(_s):
+        voltas.append(1)
+        if len(voltas) == 3:
+            raise FimDoTeste
+
+    with pytest.raises(FimDoTeste):
+        fonte._laco(dormir)
+    assert cliente.chamadas == 3  # continuou consultando apesar do erro no print
+
+
+def test_cache_que_nao_grava_nem_apaga_nao_derruba(tmp_path, relogio, monkeypatch):
+    import os
+
+    def replace_falha(*_a):
+        raise OSError("antivírus segurando o arquivo")
+
+    def unlink_falha(self, missing_ok=False):
+        raise PermissionError("ainda em uso")
+
+    monkeypatch.setattr(os, "replace", replace_falha)
+    monkeypatch.setattr(Path, "unlink", unlink_falha)
+    r = _fonte(ClienteFalso(_resumo(3)), tmp_path, relogio).resumo()
+    assert r.origem == "ao_vivo"
+
+
+def test_ao_vivo_parado_ha_mais_de_60_s_vira_reserva(tmp_path, relogio):
+    """Se o thread morrer ou travar, o painel não pode mostrar "Ao vivo" com dado velho."""
+    fonte = _fonte(ClienteComDuracao(relogio), tmp_path, relogio, em_segundo_plano=True)
+    fonte._rodada()
+    assert fonte.resumo().origem == "ao_vivo"
+    relogio.t += 61
+    assert fonte.resumo().origem == "offline"
+
+
+def test_redirecionamento_e_recusado_sem_reenviar_a_chave():
+    import http.server
+    import ssl
+
+    pedidos = []
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            pedidos.append((self.path, self.headers.get("Authorization")))
+            if self.path == "/api/v1/resumo":
+                self.send_response(302)
+                self.send_header("Location", "/roubo")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            else:
+                self.send_response(200)
+                self.end_headers()
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        cliente = ClienteResumo(
+            f"http://127.0.0.1:{srv.server_address[1]}",
+            "chave-secreta-123",
+            ssl.create_default_context(),
+            2,
+        )
+        with pytest.raises(FalhaDeRede):
+            cliente.buscar()
+        assert [p for p, _ in pedidos] == ["/api/v1/resumo"]  # não seguiu para /roubo
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_resposta_gigante_e_recusada():
+    import http.server
+    import ssl
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            # Resumo válido + 2 MiB de espaços: só um limite de tamanho recusa isto.
+            corpo = _resumo(1).model_dump_json().encode() + b" " * (2 * 1024 * 1024)
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(corpo)))
+            self.end_headers()
+            self.wfile.write(corpo)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        cliente = ClienteResumo(
+            f"http://127.0.0.1:{srv.server_address[1]}",
+            "chave-123456",
+            ssl.create_default_context(),
+            5,
+        )
+        with pytest.raises(RespostaInvalida):
+            cliente.buscar()
+    finally:
+        srv.shutdown()
+        srv.server_close()

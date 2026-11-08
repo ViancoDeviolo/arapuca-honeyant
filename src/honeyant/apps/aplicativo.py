@@ -21,6 +21,8 @@ import webbrowser
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
+from honeyant.apps.chave_colada import problema_na_chave
+
 PORTA_INICIAL = 8765
 # Chave de acesso: caracteres ASCII visíveis, sem espaço (token_urlsafe usa A-Z a-z 0-9 _ -).
 _CHAVE_VALIDA = re.compile(r"^[!-~]{8,256}$")
@@ -61,11 +63,15 @@ def abrir_socket(inicio: int = PORTA_INICIAL, tentativas: int = TENTATIVAS) -> s
     )
 
 
+def _pode_ser_chave(texto: str) -> bool:
+    return bool(_CHAVE_VALIDA.match(texto)) and problema_na_chave(texto) is None
+
+
 def ler_chave(config: Path, perguntar: Callable[[str], str] = getpass.getpass) -> str | None:
     """A chave salva; sem ela (ou com o arquivo corrompido), pergunta e salva."""
     try:
         chave = json.loads(config.read_text(encoding="utf-8")).get("chave")
-        if isinstance(chave, str) and _CHAVE_VALIDA.match(chave.strip()):
+        if isinstance(chave, str) and _pode_ser_chave(chave.strip()):
             return chave.strip()
     except (OSError, ValueError, AttributeError):
         pass
@@ -76,9 +82,17 @@ def ler_chave(config: Path, perguntar: Callable[[str], str] = getpass.getpass) -
         ).strip()
         if not chave:
             return None
+        if motivo := problema_na_chave(chave):  # rótulo, hash ou aspas: nem sai do PC
+            print(motivo)
+            continue
         if _CHAVE_VALIDA.match(chave):
-            config.parent.mkdir(parents=True, exist_ok=True)
-            config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            try:
+                config.parent.mkdir(parents=True, exist_ok=True)
+                config.write_text(json.dumps({"chave": chave}), encoding="utf-8")
+            except OSError:
+                print(
+                    "Não deu para salvar a chave (pasta do usuário sem permissão): vale só agora."
+                )
             print(f"Chave recebida ({len(chave)} caracteres).")
             return chave
         print(
