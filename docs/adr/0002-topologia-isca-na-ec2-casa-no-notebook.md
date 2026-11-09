@@ -24,6 +24,12 @@ própria) e o notebook puxando o resumo por HTTPS. Isso não foi implementado: c
 o resumo congelado por `scp` atende à demonstração, não abre mais uma porta na isca e
 funciona offline. Fica como dívida técnica.
 
+**Deploy manual (CD), por decisão de segurança:** a saída da EC2 fica bloqueada. Um CD
+automático exigiria credenciais da AWS guardadas no GitHub e a saída aberta para a instância
+baixar a imagem. Por isso o deploy é manual: cada um é uma janela de saída aberta e fechada à
+mão, registrada no CloudTrail ([`DEPLOY.md`, seção 4.1](../../infra/aws/DEPLOY.md#41-registro-das-janelas-de-saída-da-ec2)).
+A integração contínua (CI) roda em todo PR.
+
 ## Custo
 
 Conta AWS no plano pago básico. Previsto: **R$ 20 a R$ 50** até a apresentação, com

@@ -1,13 +1,16 @@
 # Arapuca HoneyAnt
 
-> Roteadores avisam "você foi atacado". O HoneyAnt avisa "é por aqui que vão te invadir, com base no que os hackers estão fazendo agora — feche isso primeiro".
+> Roteadores avisam "você foi atacado". O HoneyAnt avisa "é por aqui que vão te invadir — feche isso primeiro".
 
 Ferramenta open source de segurança para casas inteligentes:
 
 - uma **isca de baixa interação** na nuvem (Telnet e MQTT falsos) registra ataques reais da internet;
 - um **gêmeo digital** de uma casa simulada em Docker usa um resumo anonimizado desses ataques;
 - um **sensor de tráfego** identifica a vulnerabilidade na casa a partir das capturas;
-- **lógica fuzzy** transforma as evidências em risco por ligação entre dispositivos;
+- **lógica fuzzy** transforma as evidências em risco por ligação entre dispositivos. A isca
+  mostra o que os ataques reais estão mirando e ajusta a plausibilidade; a rota é decidida
+  pelas fraquezas medidas na casa
+  ([ADR 0005, sensibilidade medida](docs/adr/0005-custo-da-aresta-e-fuzzy.md#sensibilidade-medida-0911));
 - um **algoritmo de colônia de formigas (ACO)** prevê o caminho de invasão mais plausível até a fechadura, desenhado como um formigueiro.
 
 O nome junta *arapuca* (armadilha brasileira) e *honeypot ant* (formiga-pote-de-mel).
@@ -146,7 +149,7 @@ contexto, componentes, sequência da demo e implantação em
 | **Segurança de redes** | Monitoramento de tráfego: [`sensor/`](src/honeyant/sensor/); vulnerabilidade real (MQTT em texto puro e sem autenticação) identificada pelo sensor e mitigada por [`honeyant-mitigar`](src/honeyant/apps/mitigar.py); capturas [`antes.pcap`](docs/capturas/antes.pcap) (36 `CONNECT` com senha legível) e [`depois.pcap`](docs/capturas/depois.pcap) (só TLS); testes de integração dos brokers em [`tests/integration/test_twin_brokers.py`](tests/integration/test_twin_brokers.py) |
 | **Inteligência computacional** | Fuzzy de risco ([ADR 0005](docs/adr/0005-custo-da-aresta-e-fuzzy.md)) e ACO com Dijkstra como gabarito ([ADR 0006](docs/adr/0006-aco-com-dijkstra-gabarito.md)) em [`pathfinder/`](src/honeyant/pathfinder/); custo antes 1,42 e depois 4,86 (31× menos plausível), travado em [`tests/e2e/`](tests/e2e/) |
 | **Arquitetura e padrões** | [Diagramas](docs/arquitetura/README.md), [ADRs](docs/adr/), import-linter no CI |
-| **Cloud e CI/CD** | Isca na EC2 ([deploy](infra/aws/DEPLOY.md), [ADR 0002](docs/adr/0002-topologia-isca-na-ec2-casa-no-notebook.md)); [CI](.github/workflows/ci.yml) em todo PR: ruff, formatação, import-linter, bandit, pytest, testes JS, gitleaks e pip-audit |
+| **Cloud e CI/CD** | Isca na EC2 ([deploy](infra/aws/DEPLOY.md), [ADR 0002](docs/adr/0002-topologia-isca-na-ec2-casa-no-notebook.md)); [CI](.github/workflows/ci.yml) em todo PR: ruff, formatação, import-linter, bandit, pytest (inclui os testes do servidor da isca), testes JS, gitleaks e pip-audit. Deploy (CD) manual por decisão de segurança: a saída da EC2 fica bloqueada e um CD automático exigiria credenciais da AWS no GitHub e saída aberta; cada deploy é uma janela registrada no CloudTrail ([DEPLOY.md, seção 4.1](infra/aws/DEPLOY.md#41-registro-das-janelas-de-saída-da-ec2)) |
 
 ## Segurança e ética da isca
 
@@ -166,7 +169,7 @@ contexto, componentes, sequência da demo e implantação em
 ### Registro das janelas de saída da EC2
 
 A saída fica bloqueada o tempo todo e só é aberta (HTTP/HTTPS) durante instalações e
-deploys. As cinco janelas abertas até agora (14, 5, 47, 1 e 2 minutos), com data, hora e motivo,
+deploys. As seis janelas abertas até agora (14, 5, 47, 1, 2 e 12 minutos), com data, hora e motivo,
 tiradas do CloudTrail, estão em
 [`infra/aws/DEPLOY.md`, seção 4.1](infra/aws/DEPLOY.md#41-registro-das-janelas-de-saída-da-ec2).
 
@@ -199,6 +202,73 @@ Critério de revisão: quem consome revisa quem produz.
   ([ADR 0010](docs/adr/0010-twin-e-sensor-sem-dependencias-novas.md)).
 - **Evidências da demo** (`docs/demo/evidencias-*.json`) são fixtures calibradas; o sensor
   concorda com elas no `antes.pcap` (teste), mas ainda não as gera.
+- **Peso da isca no risco:** a frequência de ataques só pesa no fuzzy quando passa de ~50%
+  dos ataques num serviço; nesta casa ela muda a plausibilidade, não a rota. Recalibrar as
+  funções de pertinência da frequência
+  ([ADR 0005, sensibilidade medida](docs/adr/0005-custo-da-aresta-e-fuzzy.md#sensibilidade-medida-0911)).
+
+## Próximos passos (roadmap)
+
+As limitações acima são conhecidas e medidas. Aqui elas estão agrupadas por objetivo, cada uma
+com o motivo de ter ficado para depois e o primeiro passo. Sem datas: nenhum item foi
+prometido para a ExpoTech.
+
+**Inteligência computacional**
+
+- **Isca pesando também abaixo de 50% dos ataques.** Hoje ela muda a plausibilidade, não a
+  rota ([ADR 0005, sensibilidade medida](docs/adr/0005-custo-da-aresta-e-fuzzy.md#sensibilidade-medida-0911);
+  [`test_sensibilidade_a_isca.py`](tests/e2e/test_sensibilidade_a_isca.py)). Ficou para
+  depois porque recalibrar muda os custos da demo. Primeiro passo: medir a sensibilidade de
+  novo numa casa maior.
+- **ACO × Dijkstra em casas maiores.** O [ADR 0006](docs/adr/0006-aco-com-dijkstra-gabarito.md)
+  mediu a casa da demo (8 nós) e a auditoria final estendeu até 12. Primeiro passo: gerar
+  casas sintéticas maiores e repetir a comparação.
+- **Intenção como entrada do risco.** O fuzzy de intenção do intel
+  ([`intel/intencao.py`](src/honeyant/intel/intencao.py)) hoje só informa o painel. Ficou
+  para depois porque exige regras novas no fuzzy de risco. Primeiro passo: medir se a
+  intenção muda a rota antes de propor as regras.
+
+**Segurança de redes**
+
+- **Evidências da demo geradas pelo sensor** direto do `.pcap` (hoje são fixtures
+  calibradas, conferidas com o sensor no `antes.pcap`). Primeiro passo: gravar a saída do
+  sensor no formato de `docs/demo/evidencias-*.json` e comparar com as fixtures.
+- **Remontagem de fluxos TCP e leitura de interface ao vivo** no sensor. A porta
+  `FonteDeTrafego` já prevê outras fontes
+  ([ADR 0010](docs/adr/0010-twin-e-sensor-sem-dependencias-novas.md)). Primeiro passo: um
+  adapter de interface ao vivo atrás da mesma porta.
+- **Credenciais vazadas vindas também da isca**, quando ela capturar pares completos (hoje
+  vêm da lista de fábrica, [`docs/demo/LEIAME.md`](docs/demo/LEIAME.md)). O código já une as
+  duas fontes ([`core/credenciais.py`](src/honeyant/core/credenciais.py)); falta a isca
+  capturar pares completos.
+
+**Cloud e CI/CD**
+
+- **CD com aprovação manual** (GitHub Environments + OIDC, sem chave da AWS guardada), que
+  abra e feche a janela de saída sozinho e fique registrado no CloudTrail. Mantém a decisão de
+  segurança atual ([ADR 0002](docs/adr/0002-topologia-isca-na-ec2-casa-no-notebook.md)).
+  Primeiro passo: um papel IAM com OIDC restrito ao Security Group da isca.
+- **Actions fixadas por SHA e imagens por digest** no Dockerfile e no compose da nuvem (o
+  twin já está fixado). Primeiro passo: trocar as tags do [`ci.yml`](.github/workflows/ci.yml).
+- **Testes dos brokers no CI** ([`test_twin_brokers.py`](tests/integration/test_twin_brokers.py)),
+  que precisam de Docker. Primeiro passo: um job separado com Docker no runner do GitHub.
+
+**Painel e aplicativo**
+
+- **Modo nuvem do painel**, que recusa subir sem `HONEYANT_PAINEL_SENHA_HASH` (ver Dívidas
+  técnicas). Ficou para depois porque a demo roda no notebook.
+- **Sessões e bloqueios do login persistidos** (hoje em memória;
+  [ADR 0009](docs/adr/0009-login-do-painel.md)).
+- **Chave do app protegida com DPAPI e executável assinado** (hoje o SmartScreen avisa;
+  [ADR 0011](docs/adr/0011-empacotamento-pyinstaller.md)).
+
+**Escala**
+
+- **Escrita em lote na isca, ou outro banco,** se o tráfego passar de ~500 sessões/s (medido
+  na auditoria final; hoje são centenas de sessões por dia;
+  [ADR 0003](docs/adr/0003-sqlite-no-mvp.md)).
+
+Contribuições são bem-vindas: veja [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Como contribuir
 
