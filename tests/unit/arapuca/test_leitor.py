@@ -93,3 +93,25 @@ async def test_linha_vazia_continua_sendo_linha_vazia(leitor_com):
 async def test_cr_seguido_de_texto_comeca_outra_linha(leitor_com):
     leitor = LeitorLimitado(leitor_com(b"a\rb\n"))
     assert [await leitor.ler_linha(), await leitor.ler_linha()] == [b"a", b"b"]
+
+
+# Bordas do limite de bytes (auditoria final, L2): o limite é inclusivo.
+async def test_ler_exato_aceita_exatamente_max_bytes(leitor_com):
+    leitor = LeitorLimitado(leitor_com(b"x" * 10), max_bytes=10)
+    assert await leitor.ler_exato(10) == b"x" * 10
+    assert leitor.bytes_lidos == 10
+
+
+async def test_ler_exato_recusa_max_bytes_mais_um(leitor_com):
+    leitor = LeitorLimitado(leitor_com(b"x" * 11), max_bytes=10)
+    with pytest.raises(LimiteExcedido):
+        await leitor.ler_exato(11)
+    assert leitor.bytes_lidos == 0  # recusa antes de ler
+
+
+async def test_ler_exato_soma_o_que_ja_foi_lido(leitor_com):
+    leitor = LeitorLimitado(leitor_com(b"x" * 11), max_bytes=10)
+    await leitor.ler_exato(4)
+    await leitor.ler_exato(6)  # chega a 10: ainda cabe
+    with pytest.raises(LimiteExcedido):
+        await leitor.ler_exato(1)
