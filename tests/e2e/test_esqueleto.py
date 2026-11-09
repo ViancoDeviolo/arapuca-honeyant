@@ -107,8 +107,8 @@ def test_config_padrao_so_escuta_localhost():
 
 
 @pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.0.10"])  # noqa: S104
-def test_config_recusa_host_fora_do_localhost_enquanto_nao_ha_login(host):
-    with pytest.raises(ValueError, match="127.0.0.1"):
+def test_config_recusa_host_fora_do_loopback(host):
+    with pytest.raises(ValueError, match="não há modo nuvem"):
         ConfigLocal.de_ambiente({"HONEYANT_HOST": host})
 
 

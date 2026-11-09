@@ -26,6 +26,9 @@ jobs:
         run: uv run bandit -c pyproject.toml -r src
       - name: Testes
         run: uv run pytest -m "not integration" -v
+      - name: Testes do servidor da isca (integration, sem Docker)
+        # Sockets em 127.0.0.1, ~1 s. Os de test_twin_brokers.py precisam de Docker e ficam fora.
+        run: uv run pytest -m integration tests/integration/test_servidor_isca.py -v
       - uses: actions/setup-node@v4
         with:
           node-version: "20"

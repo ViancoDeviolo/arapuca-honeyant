@@ -3,7 +3,8 @@
 Uso:
     uv run honeyant-local            # http://127.0.0.1:8000/
 Variáveis: HONEYANT_DEMO_DIR, HONEYANT_HOST, HONEYANT_PORTA. O perfil (inseguro|seguro)
-vem da query de cada requisição. Até o painel ter autenticação, só escuta em 127.0.0.1.
+vem da query de cada requisição. Só escuta no loopback: não há modo nuvem (README,
+Dívidas técnicas).
 """
 
 import json
@@ -41,11 +42,11 @@ class ConfigLocal:
     @classmethod
     def de_ambiente(cls, env: Mapping[str, str]) -> "ConfigLocal":
         host = env.get("HONEYANT_HOST", "127.0.0.1")
-        # Painel ainda sem login nem TLS (spec, seção 12): só a própria máquina acessa.
+        # Sem TLS e sem modo nuvem (README, Dívidas técnicas): só a própria máquina acessa.
         if host not in HOSTS_LOCAIS:
             raise ValueError(
-                f"HONEYANT_HOST={host!r} recusado: até o painel ter autenticação, "
-                "use 127.0.0.1 (ou localhost/::1)"
+                f"HONEYANT_HOST={host!r} recusado: use 127.0.0.1 (ou localhost/::1): o painel "
+                "só escuta no loopback; não há modo nuvem (README, Dívidas técnicas)"
             )
         return cls(
             demo_dir=Path(env.get("HONEYANT_DEMO_DIR", "docs/demo")),
