@@ -72,3 +72,27 @@ async def test_connect_sem_credenciais(leitor_com):
     corpo = s("MQTT") + b"\x04" + b"\x02" + b"\x00\x3c" + s("anon")
     cap = await ServicoMqtt().atender(LeitorLimitado(leitor_com(pacote(0x10, corpo))), Saida())
     assert cap.usuario is None and cap.senha is None
+
+
+# Bordas do tamanho do pacote (auditoria final, L2): remaining length = max_pacote é aceito.
+def _corpo_connect() -> bytes:
+    return s("MQTT") + b"\x04" + b"\xc2" + b"\x00\x3c" + s("cli1") + s("camera") + s("123456")
+
+
+async def test_pacote_do_tamanho_maximo_e_aceito(leitor_com):
+    corpo = _corpo_connect()
+    saida = Saida()
+    servico = ServicoMqtt(max_pacote=len(corpo))
+    cap = await servico.atender(LeitorLimitado(leitor_com(pacote(0x10, corpo))), saida)
+    assert (cap.usuario, cap.senha) == ("camera", "123456")
+    assert saida.dados.startswith(b"\x20\x02\x00\x00")  # CONNACK
+
+
+async def test_pacote_um_byte_acima_do_maximo_encerra_a_sessao(leitor_com):
+    corpo = _corpo_connect()
+    saida = Saida()
+    servico = ServicoMqtt(max_pacote=len(corpo) - 1)
+    cap = await servico.atender(LeitorLimitado(leitor_com(pacote(0x10, corpo))), saida)
+    assert cap.usuario is None and cap.senha is None
+    assert saida.dados == b""  # nem CONNACK: o corpo nem foi lido
+    assert cap.bytes_recebidos == 2  # só o cabeçalho fixo e o remaining length
